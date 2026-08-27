@@ -125,6 +125,17 @@
             min-width: 0;
             gap: 22px;
         }
+        .page-view {
+            display: grid;
+            min-width: 0;
+            gap: 22px;
+            animation: view-enter 180ms ease-out;
+        }
+        .page-view[hidden] { display: none; }
+        @keyframes view-enter {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         .card {
             border: 1px solid rgba(255, 255, 255, 0.72);
             border-radius: 18px;
@@ -132,6 +143,52 @@
             box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.46);
             backdrop-filter: blur(14px) saturate(112%);
             -webkit-backdrop-filter: blur(14px) saturate(112%);
+        }
+
+        .content-card { min-height: 430px; padding: 34px 38px; }
+        .content-kicker {
+            margin: 0 0 8px;
+            color: var(--blue);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+        .content-title {
+            margin: 0;
+            color: #111c2c;
+            font-family: Georgia, "Noto Serif SC", "Songti SC", serif;
+            font-size: clamp(29px, 3vw, 42px);
+        }
+        .content-lead { margin: 12px 0 28px; color: #607086; line-height: 1.8; }
+        .file-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+        .file-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 18px 20px;
+            color: #233a56;
+            border: 1px solid #d5e2ef;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.65);
+            text-decoration: none;
+            transition: 160ms ease;
+        }
+        .file-link::after { content: "打开 ↗"; flex: 0 0 auto; color: var(--blue); font-size: 13px; }
+        .file-link:hover, .file-link:focus-visible {
+            border-color: #9fc2f4;
+            background: var(--blue-soft);
+            transform: translateY(-1px);
+            outline: none;
+        }
+        .empty-note {
+            padding: 28px;
+            color: #718198;
+            border: 1px dashed #b9cada;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.4);
+            text-align: center;
         }
 
         .profile-card {
@@ -283,6 +340,7 @@
             .nav-icon { width: auto; flex-basis: auto; font-size: 17px; }
             .sidebar-footer { display: none; }
             main { gap: 16px; }
+            .page-view { gap: 16px; }
             .profile-card { grid-template-columns: 165px minmax(0, 1fr); gap: 28px; padding: 30px; }
             .avatar-wrap { width: 165px; }
         }
@@ -292,6 +350,8 @@
             .app-shell { width: calc(100% - 20px); margin: 10px auto; gap: 10px; }
             .sidebar { top: 6px; padding: 14px 12px; border-radius: 14px; }
             main { gap: 10px; }
+            .page-view { gap: 10px; }
+            .content-card { min-height: 330px; padding: 26px 20px; }
             .profile-card { grid-template-columns: 1fr; justify-items: center; gap: 20px; padding: 28px 20px; text-align: center; }
             .avatar-wrap { width: 148px; }
             .profile-content h2 { font-size: 29px; }
@@ -324,12 +384,12 @@
                 <p>个人档案馆</p>
             </div>
             <nav class="nav-list">
-                <a class="nav-item active" href="index.html" aria-current="page"><span class="nav-icon">⌂</span><span>首页</span></a>
-                <a class="nav-item" href="xingzheng.html"><span class="nav-icon">▤</span><span>行政</span></a>
-                <a class="nav-item" href="rizhi.html"><span class="nav-icon">✎</span><span>博客</span></a>
+                <a class="nav-item active" href="#home" data-route="home" aria-current="page"><span class="nav-icon">⌂</span><span>首页</span></a>
+                <a class="nav-item" href="#admin" data-route="admin"><span class="nav-icon">▤</span><span>行政</span></a>
+                <a class="nav-item" href="#blog" data-route="blog"><span class="nav-icon">✎</span><span>博客</span></a>
                 <a class="nav-item" href="#profile"><span class="nav-icon">⌘</span><span>工程</span></a>
                 <a class="nav-item" href="#calendar"><span class="nav-icon">⚗</span><span>实验室</span></a>
-                <a class="nav-item" href="jiaohu.html"><span class="nav-icon">◎</span><span>ChatGPT</span></a>
+                <a class="nav-item" href="#chatgpt" data-route="chatgpt"><span class="nav-icon">◎</span><span>ChatGPT</span></a>
                 <a class="nav-item" href="#more"><span class="nav-icon">▦</span><span>更多</span></a>
             </nav>
             <footer class="sidebar-footer">
@@ -338,7 +398,8 @@
             </footer>
         </aside>
 
-        <main>
+        <main id="mainContent">
+            <div class="page-view" id="view-home" data-view="home">
             <section class="profile-card card" id="profile" aria-labelledby="profileName">
                 <div class="avatar-wrap">
                     <img class="avatar" src="avatar.jpg" alt="赵冠杰的头像">
@@ -370,6 +431,38 @@
                 <div class="weekdays" aria-hidden="true"><div>周一</div><div>周二</div><div>周三</div><div>周四</div><div>周五</div><div>周六</div><div>周日</div></div>
                 <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="月历"></div>
             </section>
+            </div>
+
+            <div class="page-view" id="view-admin" data-view="admin" hidden>
+                <section class="content-card card" aria-labelledby="adminHeading">
+                    <p class="content-kicker">Administration</p>
+                    <h2 class="content-title" id="adminHeading">行政</h2>
+                    <p class="content-lead">计划、资料与日常行政文件。</p>
+                    <ul class="file-list">
+                        <li><a class="file-link" href="xingzheng_260826_001.txt" target="_blank" rel="noopener">行政第 001 个计划</a></li>
+                    </ul>
+                </section>
+            </div>
+
+            <div class="page-view" id="view-blog" data-view="blog" hidden>
+                <section class="content-card card" aria-labelledby="blogHeading">
+                    <p class="content-kicker">Journal</p>
+                    <h2 class="content-title" id="blogHeading">博客</h2>
+                    <p class="content-lead">这里用于整理日志、思考与阶段性记录。</p>
+                    <div class="empty-note">博客内容准备中</div>
+                </section>
+            </div>
+
+            <div class="page-view" id="view-chatgpt" data-view="chatgpt" hidden>
+                <section class="content-card card" aria-labelledby="chatgptHeading">
+                    <p class="content-kicker">Interaction</p>
+                    <h2 class="content-title" id="chatgptHeading">ChatGPT</h2>
+                    <p class="content-lead">交互记录与留言归档。</p>
+                    <ul class="file-list">
+                        <li><a class="file-link" href="jiaohu_liuyan.txt" target="_blank" rel="noopener">留言</a></li>
+                    </ul>
+                </section>
+            </div>
         </main>
     </div>
 
@@ -380,6 +473,16 @@
             let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
             const grid = document.getElementById('calendarGrid');
             const label = document.getElementById('monthLabel');
+            const views = [...document.querySelectorAll('[data-view]')];
+            const navItems = [...document.querySelectorAll('.nav-item')];
+            const viewRoutes = new Set(views.map((view) => view.dataset.view));
+            const homeAnchors = new Set(['profile', 'calendar', 'more']);
+            const pageTitles = {
+                home: 'ZGJ Archive｜个人档案馆',
+                admin: '行政｜ZGJ Archive',
+                blog: '博客｜ZGJ Archive',
+                chatgpt: 'ChatGPT｜ZGJ Archive'
+            };
 
             function sameDay(a, b) {
                 return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -411,6 +514,43 @@
                 }
             }
 
+            function currentTarget() {
+                return decodeURIComponent(location.hash.slice(1)) || 'home';
+            }
+
+            function renderRoute(options = {}) {
+                const target = currentTarget();
+                const route = viewRoutes.has(target) ? target : 'home';
+                views.forEach((view) => { view.hidden = view.dataset.view !== route; });
+                navItems.forEach((item) => {
+                    const active = item.getAttribute('href') === `#${target}` || (target === 'home' && item.dataset.route === 'home');
+                    item.classList.toggle('active', active);
+                    if (active) item.setAttribute('aria-current', 'page');
+                    else item.removeAttribute('aria-current');
+                });
+                document.title = pageTitles[route];
+
+                if (homeAnchors.has(target) && options.scroll !== false) {
+                    requestAnimationFrame(() => document.getElementById(target)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+                } else if (options.scroll !== false) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }
+
+            navItems.forEach((item) => {
+                item.addEventListener('click', (event) => {
+                    const targetHash = new URL(item.href, location.href).hash;
+                    if (!targetHash) return;
+                    event.preventDefault();
+                    if (location.hash === targetHash) renderRoute();
+                    else {
+                        history.pushState(null, '', targetHash);
+                        renderRoute();
+                    }
+                });
+            });
+            window.addEventListener('popstate', () => renderRoute({ scroll: false }));
+
             document.getElementById('prevMonth').addEventListener('click', () => {
                 viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
                 renderCalendar();
@@ -425,6 +565,7 @@
             });
             document.getElementById('copyrightYear').textContent = now.getFullYear();
             renderCalendar();
+            renderRoute({ scroll: false });
         })();
     </script>
 </body>
