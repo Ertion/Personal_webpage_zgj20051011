@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "personal-webpage-zgj20051011",
-  "main": "./worker/index.js",
+  "main": "./worker.js",
   "compatibility_date": "2026-08-27",
   "observability": {
     "enabled": true

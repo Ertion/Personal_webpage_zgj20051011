@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import worker from '../worker/index.js';
+import worker from '../worker.js';
 
 const env = {
     ADMIN_PASSWORD: 'test-only-password',
