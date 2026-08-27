@@ -3,90 +3,409 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>zgj20051011</title>
-
+    <meta name="description" content="赵冠杰的个人档案馆，记录嵌入式、无人机与工程实践。">
+    <meta name="theme-color" content="#0d2236">
+    <title>ZGJ Archive｜个人档案馆</title>
     <style>
-        * {
-            box-sizing: border-box;
+        :root {
+            --navy: #0c2033;
+            --blue: #2f78e8;
+            --blue-soft: #edf5ff;
+            --ink: #172336;
+            --line: #e0e8f2;
+            --paper: rgba(255, 255, 255, 0.93);
+            --shadow: 0 18px 45px rgba(26, 48, 73, 0.12);
         }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
 
         body {
             margin: 0;
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-
-            font-family: "Microsoft YaHei", Arial, sans-serif;
-
-            background: #f5f5f5;
+            color: var(--ink);
+            font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
+            background:
+                radial-gradient(circle at 83% 8%, rgba(76, 141, 230, 0.12), transparent 29%),
+                linear-gradient(135deg, #edf3f9 0%, #f9fbfd 45%, #eaf1f8 100%);
         }
 
-        .container {
-            width: 90%;
-            max-width: 700px;
+        button, a { -webkit-tap-highlight-color: transparent; }
+
+        .app-shell {
+            width: min(1500px, calc(100% - 32px));
+            min-height: calc(100vh - 32px);
+            margin: 16px auto;
+            display: grid;
+            grid-template-columns: 286px minmax(0, 1fr);
+            overflow: hidden;
+            border: 1px solid rgba(100, 123, 151, 0.45);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.72);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(16px);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 34px);
+            padding: 42px 26px 30px;
+            color: #f6f9fc;
+            background:
+                radial-gradient(circle at 30% 28%, rgba(46, 112, 171, 0.20), transparent 35%),
+                linear-gradient(155deg, #081a2b 0%, #102a40 58%, #0a1d2e 100%);
+        }
+
+        .brand { padding: 0 20px 28px; }
+        .brand h1 {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(28px, 2.2vw, 36px);
+            letter-spacing: 0.02em;
+        }
+        .brand p {
+            margin: 12px 0 0;
+            color: #cbd7e5;
+            font-size: 16px;
+            letter-spacing: 0.16em;
+        }
+        .brand p::before {
+            content: "";
+            display: inline-block;
+            width: 27px;
+            height: 1px;
+            margin-right: 14px;
+            vertical-align: middle;
+            background: #7990a6;
+        }
+
+        .nav-list { display: grid; gap: 7px; margin-top: 8px; }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-height: 56px;
+            padding: 0 20px;
+            color: #edf4fa;
+            border: 1px solid transparent;
+            border-radius: 11px;
+            font-size: 17px;
+            text-decoration: none;
+            transition: 180ms ease;
+        }
+        .nav-item:hover, .nav-item:focus-visible {
+            background: rgba(97, 157, 218, 0.14);
+            border-color: rgba(143, 189, 236, 0.15);
+            transform: translateX(3px);
+            outline: none;
+        }
+        .nav-item.active {
+            color: #72a9ff;
+            background: linear-gradient(90deg, rgba(72, 126, 192, 0.35), rgba(60, 109, 170, 0.28));
+            border-color: rgba(123, 173, 231, 0.12);
+        }
+        .nav-icon { width: 24px; flex: 0 0 24px; color: currentColor; font-size: 21px; text-align: center; }
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 25px 10px 0;
+            border-top: 1px solid rgba(191, 208, 223, 0.28);
+            color: #aebdca;
+            font-size: 13px;
+            line-height: 1.8;
             text-align: center;
         }
 
-        h1 {
-            margin-bottom: 50px;
-            font-size: 36px;
-            color: #222;
+        main { min-width: 0; padding: 28px 32px; }
+        .card {
+            border: 1px solid rgba(194, 207, 221, 0.75);
+            border-radius: 14px;
+            background: var(--paper);
+            box-shadow: 0 8px 24px rgba(32, 54, 78, 0.07);
         }
 
-        .menu {
+        .profile-card {
+            position: relative;
+            isolation: isolate;
+            display: grid;
+            grid-template-columns: 220px minmax(0, 1fr);
+            align-items: center;
+            gap: 42px;
+            min-height: 330px;
+            padding: 38px 52px;
+            overflow: hidden;
+        }
+        .profile-card::after {
+            content: "";
+            position: absolute;
+            z-index: -1;
+            top: -20%;
+            right: -7%;
+            width: 48%;
+            height: 140%;
+            opacity: 0.6;
+            background:
+                radial-gradient(circle at 75% 24%, rgba(72, 142, 236, 0.16) 0 1px, transparent 2px) 0 0 / 8px 8px,
+                linear-gradient(135deg, transparent 22%, rgba(83, 149, 224, 0.09), transparent 64%);
+            mask-image: linear-gradient(to left, #000, transparent);
+        }
+        .avatar-wrap {
+            width: 220px;
+            aspect-ratio: 1;
+            padding: 8px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #eef5fd, #d9e7f6);
+            box-shadow: inset 0 0 0 1px rgba(70, 116, 165, 0.12), 0 10px 25px rgba(35, 66, 99, 0.13);
+        }
+        .avatar { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; border-radius: 50%; }
+        .profile-content { min-width: 0; }
+        .profile-content h2 {
+            margin: 0 0 12px;
+            font-family: Georgia, "Noto Serif SC", "Songti SC", serif;
+            font-size: clamp(30px, 3.2vw, 47px);
+            line-height: 1.18;
+            color: #111c2c;
+        }
+        .profile-rule { width: min(680px, 100%); height: 1px; margin-bottom: 14px; background: linear-gradient(90deg, #b8cae1, transparent); }
+        .detail-list { display: grid; gap: 11px; margin: 0; color: #53637a; font-size: 17px; }
+        .detail-row { display: grid; grid-template-columns: 27px 74px 14px minmax(0, 1fr); align-items: center; gap: 8px; }
+        .detail-row .detail-icon { color: #61748e; font-size: 19px; text-align: center; }
+        .detail-value { min-width: 0; color: #465b76; overflow-wrap: anywhere; }
+        a.detail-value { text-decoration: none; }
+        a.detail-value:hover { color: var(--blue); text-decoration: underline; }
+        .tags { display: flex; flex-wrap: wrap; gap: 11px; margin-top: 22px; }
+        .tag {
+            padding: 9px 17px;
+            color: #2166cc;
+            border: 1px solid #bfd7fb;
+            border-radius: 9px;
+            background: linear-gradient(180deg, #f7fbff, #eaf3ff);
+            font-size: 14px;
+        }
+
+        .calendar-card { margin-top: 25px; overflow: hidden; }
+        .calendar-head {
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            min-height: 86px;
+            padding: 17px 30px;
+            border-bottom: 1px solid var(--line);
+        }
+        .calendar-title { display: flex; align-items: center; gap: 13px; margin: 0; font-size: 24px; font-weight: 700; }
+        .calendar-title span { color: var(--blue); font-size: 24px; }
+        .calendar-controls { display: flex; align-items: center; gap: 14px; }
+        .icon-button, .today-button {
+            height: 40px;
+            border: 1px solid #d3deeb;
+            border-radius: 8px;
+            color: #1c2c40;
+            background: #fff;
+            cursor: pointer;
+            transition: 160ms ease;
+        }
+        .icon-button { width: 40px; font-size: 25px; line-height: 1; }
+        .today-button { min-width: 65px; padding: 0 16px; font-size: 14px; }
+        .icon-button:hover, .today-button:hover, .icon-button:focus-visible, .today-button:focus-visible {
+            color: var(--blue);
+            border-color: #9fc2f4;
+            background: var(--blue-soft);
+            outline: none;
+        }
+        #monthLabel { min-width: 132px; font-size: 20px; font-weight: 700; text-align: center; }
+        .weekdays, .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        .weekdays {
+            min-height: 48px;
+            align-items: center;
+            color: #58677b;
+            border-bottom: 1px solid var(--line);
+            font-size: 14px;
+            text-align: center;
+        }
+        .calendar-grid { background: #e3eaf2; gap: 1px; }
+        .calendar-day {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            min-height: 75px;
+            padding-top: 14px;
+            color: #26364a;
+            background: rgba(255, 255, 255, 0.98);
+            font-size: 15px;
+        }
+        .calendar-day.other-month { color: #b1bdcc; }
+        .calendar-day.today {
+            z-index: 1;
+            color: #1766db;
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(145deg, #f3f8ff, #e5f0ff);
+            box-shadow: inset 0 0 0 1px #a9caf9;
+        }
+        .calendar-day.today::after {
+            content: "";
+            position: absolute;
+            bottom: 13px;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--blue);
         }
 
-        .menu a {
-            display: block;
-
-            padding: 25px;
-
-            font-size: 24px;
-            text-decoration: none;
-
-            color: #222;
-            background: white;
-
-            border: 1px solid #ddd;
-            border-radius: 12px;
-
-            transition: 0.2s;
+        @media (max-width: 980px) {
+            .app-shell { width: 100%; min-height: 100vh; margin: 0; grid-template-columns: 1fr; border: 0; border-radius: 0; }
+            .sidebar { min-height: auto; padding: 18px 22px; }
+            .brand { display: flex; align-items: baseline; justify-content: space-between; padding: 0 3px 14px; }
+            .brand h1 { font-size: 27px; }
+            .brand p { margin: 0; font-size: 13px; }
+            .brand p::before { display: none; }
+            .nav-list { display: flex; gap: 8px; padding-bottom: 3px; overflow-x: auto; scrollbar-width: thin; }
+            .nav-item { flex: 0 0 auto; min-height: 43px; padding: 0 14px; font-size: 14px; }
+            .nav-icon { width: auto; flex-basis: auto; font-size: 17px; }
+            .sidebar-footer { display: none; }
+            main { padding: 22px; }
+            .profile-card { grid-template-columns: 165px minmax(0, 1fr); gap: 28px; padding: 30px; }
+            .avatar-wrap { width: 165px; }
         }
 
-        .menu a:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        @media (max-width: 680px) {
+            main { padding: 14px; }
+            .profile-card { grid-template-columns: 1fr; justify-items: center; gap: 20px; padding: 28px 20px; text-align: center; }
+            .avatar-wrap { width: 148px; }
+            .profile-content h2 { font-size: 29px; }
+            .profile-rule { margin-inline: auto; }
+            .detail-list { width: fit-content; max-width: 100%; margin-inline: auto; text-align: left; font-size: 14px; }
+            .detail-row { grid-template-columns: 23px 54px 10px minmax(0, 1fr); gap: 5px; }
+            .tags { justify-content: center; }
+            .tag { padding: 7px 11px; font-size: 12px; }
+            .calendar-head { align-items: flex-start; flex-direction: column; padding: 18px; }
+            .calendar-title { font-size: 20px; }
+            .calendar-controls { width: 100%; justify-content: space-between; gap: 6px; }
+            #monthLabel { min-width: auto; font-size: 17px; }
+            .today-button { min-width: 55px; padding: 0 10px; }
+            .weekdays { min-height: 42px; font-size: 12px; }
+            .calendar-day { min-height: 55px; padding-top: 10px; font-size: 13px; }
+            .calendar-day.today { font-size: 16px; }
+            .calendar-day.today::after { bottom: 8px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { scroll-behavior: auto !important; transition: none !important; }
         }
     </style>
 </head>
-
 <body>
+    <div class="app-shell">
+        <aside class="sidebar" aria-label="主要导航">
+            <div class="brand">
+                <h1>ZGJ Archive</h1>
+                <p>个人档案馆</p>
+            </div>
+            <nav class="nav-list">
+                <a class="nav-item active" href="index.html" aria-current="page"><span class="nav-icon">⌂</span><span>首页</span></a>
+                <a class="nav-item" href="xingzheng.html"><span class="nav-icon">▤</span><span>行政</span></a>
+                <a class="nav-item" href="rizhi.html"><span class="nav-icon">✎</span><span>博客</span></a>
+                <a class="nav-item" href="#profile"><span class="nav-icon">⌘</span><span>工程</span></a>
+                <a class="nav-item" href="#calendar"><span class="nav-icon">⚗</span><span>实验室</span></a>
+                <a class="nav-item" href="jiaohu.html"><span class="nav-icon">◎</span><span>ChatGPT</span></a>
+                <a class="nav-item" href="#more"><span class="nav-icon">▦</span><span>更多</span></a>
+            </nav>
+            <footer class="sidebar-footer">
+                <div>© <span id="copyrightYear"></span> ZGJ Archive</div>
+                <div>记录 · 思考 · 构建 · 分享</div>
+            </footer>
+        </aside>
 
-<div class="container">
+        <main>
+            <section class="profile-card card" id="profile" aria-labelledby="profileName">
+                <div class="avatar-wrap">
+                    <img class="avatar" src="avatar.jpg" alt="赵冠杰的头像">
+                </div>
+                <div class="profile-content">
+                    <h2 id="profileName">赵冠杰 / Guanjie Zhao</h2>
+                    <div class="profile-rule"></div>
+                    <div class="detail-list">
+                        <div class="detail-row"><span class="detail-icon" aria-hidden="true">✉</span><span>邮箱</span><span>：</span><a class="detail-value" href="mailto:zgj20051011@gmail.com">zgj20051011@gmail.com</a></div>
+                        <div class="detail-row"><span class="detail-icon" aria-hidden="true">☵</span><span>微信</span><span>：</span><span class="detail-value">Ertion1011</span></div>
+                        <div class="detail-row"><span class="detail-icon" aria-hidden="true">◇</span><span>简介</span><span>：</span><span class="detail-value">嵌入式 / 无人机 / 工程记录</span></div>
+                    </div>
+                    <div class="tags" id="more" aria-label="兴趣标签">
+                        <span class="tag">▣ Embedded</span><span class="tag">⌁ Drone</span><span class="tag">↔ ESC</span><span class="tag">□ Projects</span>
+                    </div>
+                </div>
+            </section>
 
-    <h1>GitHub自动部署测试456</h1>
-
-    <div class="menu">
-
-        <a href="xingzheng.html">
-            行政test
-        </a>
-
-        <a href="rizhi.html">
-            日志
-        </a>
-
-        <a href="jiaohu.html">
-            交互
-        </a>
-
+            <section class="calendar-card card" id="calendar" aria-labelledby="calendarHeading">
+                <header class="calendar-head">
+                    <h2 class="calendar-title" id="calendarHeading"><span aria-hidden="true">▣</span>本月安排</h2>
+                    <div class="calendar-controls">
+                        <button class="icon-button" id="prevMonth" type="button" aria-label="上个月">‹</button>
+                        <div id="monthLabel" aria-live="polite"></div>
+                        <button class="icon-button" id="nextMonth" type="button" aria-label="下个月">›</button>
+                        <button class="today-button" id="todayButton" type="button">今天</button>
+                    </div>
+                </header>
+                <div class="weekdays" aria-hidden="true"><div>周一</div><div>周二</div><div>周三</div><div>周四</div><div>周五</div><div>周六</div><div>周日</div></div>
+                <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="月历"></div>
+            </section>
+        </main>
     </div>
 
-</div>
+    <script>
+        (() => {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            const grid = document.getElementById('calendarGrid');
+            const label = document.getElementById('monthLabel');
 
+            function sameDay(a, b) {
+                return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+            }
+
+            function renderCalendar() {
+                const year = viewDate.getFullYear();
+                const month = viewDate.getMonth();
+                label.textContent = `${year}年 ${month + 1}月`;
+                grid.replaceChildren();
+                const firstDay = new Date(year, month, 1);
+                const mondayOffset = (firstDay.getDay() + 6) % 7;
+                const startDate = new Date(year, month, 1 - mondayOffset);
+
+                for (let index = 0; index < 42; index += 1) {
+                    const date = new Date(startDate);
+                    date.setDate(startDate.getDate() + index);
+                    const cell = document.createElement('div');
+                    cell.className = 'calendar-day';
+                    cell.setAttribute('role', 'gridcell');
+                    cell.textContent = date.getDate();
+                    cell.setAttribute('aria-label', `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`);
+                    if (date.getMonth() !== month) cell.classList.add('other-month');
+                    if (sameDay(date, today)) {
+                        cell.classList.add('today');
+                        cell.setAttribute('aria-current', 'date');
+                    }
+                    grid.appendChild(cell);
+                }
+            }
+
+            document.getElementById('prevMonth').addEventListener('click', () => {
+                viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
+                renderCalendar();
+            });
+            document.getElementById('nextMonth').addEventListener('click', () => {
+                viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1);
+                renderCalendar();
+            });
+            document.getElementById('todayButton').addEventListener('click', () => {
+                viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                renderCalendar();
+            });
+            document.getElementById('copyrightYear').textContent = now.getFullYear();
+            renderCalendar();
+        })();
+    </script>
 </body>
 </html>
