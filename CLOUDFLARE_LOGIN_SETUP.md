@@ -2,12 +2,12 @@
 
 登录页面不会把所有者密码写入 HTML 或 GitHub。部署前请在 Cloudflare Dashboard 中配置两个加密 Secret。
 
-1. 打开 **Workers & Pages**，进入当前 Pages 项目。
+1. 打开 **Workers & Pages**，进入当前 `personal-webpage-zgj20051011` 项目。
 2. 打开 **Settings → Variables and Secrets**。
 3. 在 Production 环境添加并加密以下变量：
    - `ADMIN_PASSWORD`：所有者登录密码。
    - `SESSION_SECRET`：至少 32 个随机字符，专门用于签名登录会话，不要与登录密码相同。
-4. 保存变量后重新部署项目。
+4. 保存变量后重新部署项目。当前项目通过 Worker 的 `/api/auth` 路由处理登录。
 
 用户名已经固定在服务端代码中。不要创建或提交 `.dev.vars`、`.env` 文件；这些文件已经加入 `.gitignore`。
 
