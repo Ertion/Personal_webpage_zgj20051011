@@ -19,6 +19,7 @@
 
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
+        [hidden] { display: none !important; }
 
         body {
             margin: 0;
@@ -31,6 +32,102 @@
         }
 
         button, a { -webkit-tap-highlight-color: transparent; }
+
+        body.auth-pending { overflow: hidden; }
+        .auth-gate {
+            position: fixed;
+            z-index: 1000;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            overflow-y: auto;
+            background:
+                linear-gradient(135deg, rgba(7, 25, 42, 0.78), rgba(12, 44, 70, 0.58)),
+                url("background.jpg") center / cover no-repeat;
+        }
+        .auth-card {
+            width: min(900px, 100%);
+            min-height: 520px;
+            display: grid;
+            grid-template-columns: 0.92fr 1.08fr;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            border-radius: 22px;
+            box-shadow: 0 28px 80px rgba(4, 18, 31, 0.42);
+        }
+        .auth-brand {
+            position: relative;
+            isolation: isolate;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 48px 42px;
+            overflow: hidden;
+            color: #f5f9fd;
+            background: linear-gradient(155deg, rgba(7, 25, 42, 0.97), rgba(18, 54, 82, 0.95));
+        }
+        .auth-brand::after {
+            content: "";
+            position: absolute;
+            z-index: -1;
+            width: 330px;
+            height: 330px;
+            right: -160px;
+            bottom: -120px;
+            border: 1px solid rgba(124, 181, 239, 0.20);
+            border-radius: 50%;
+            box-shadow: 0 0 0 48px rgba(72, 137, 201, 0.05), 0 0 0 96px rgba(72, 137, 201, 0.04);
+        }
+        .auth-logo { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 35px; }
+        .auth-brand-copy { margin: 12px 0 0; color: #c5d5e4; font-size: 15px; letter-spacing: 0.14em; }
+        .auth-quote { margin: 0; color: #b7c7d7; font-size: 14px; line-height: 1.9; }
+        .auth-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 46px 54px;
+            background: rgba(248, 252, 255, 0.96);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+        .auth-eyebrow { margin: 0 0 8px; color: var(--blue); font-size: 12px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
+        .auth-title { margin: 0; color: #122033; font-family: Georgia, "Noto Serif SC", "Songti SC", serif; font-size: 34px; }
+        .auth-description { margin: 12px 0 26px; color: #66778c; font-size: 14px; line-height: 1.8; }
+        .auth-form { display: grid; gap: 16px; }
+        .auth-field { display: grid; gap: 7px; color: #32465e; font-size: 13px; font-weight: 700; }
+        .auth-field input {
+            width: 100%;
+            height: 48px;
+            padding: 0 14px;
+            color: #17283c;
+            border: 1px solid #cbd9e7;
+            border-radius: 10px;
+            background: #fff;
+            font: inherit;
+            font-weight: 500;
+            outline: none;
+            transition: 160ms ease;
+        }
+        .auth-field input:focus { border-color: #6da3ec; box-shadow: 0 0 0 3px rgba(47, 120, 232, 0.12); }
+        .auth-field input[readonly] { color: #61748a; background: #f2f6fa; }
+        .auth-primary, .auth-guest {
+            min-height: 48px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 160ms ease;
+        }
+        .auth-primary { color: #fff; border: 1px solid #2f78e8; background: linear-gradient(135deg, #2f78e8, #2364c8); box-shadow: 0 8px 18px rgba(47, 120, 232, 0.22); }
+        .auth-primary:hover, .auth-primary:focus-visible { background: linear-gradient(135deg, #3d86f2, #286bd2); transform: translateY(-1px); outline: none; }
+        .auth-primary:disabled { opacity: 0.62; cursor: wait; transform: none; }
+        .auth-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: #91a0b1; font-size: 12px; }
+        .auth-divider::before, .auth-divider::after { content: ""; height: 1px; flex: 1; background: #d8e1ea; }
+        .auth-guest { width: 100%; color: #2b4059; border: 1px solid #cad8e6; background: rgba(255, 255, 255, 0.8); }
+        .auth-guest:hover, .auth-guest:focus-visible { color: var(--blue); border-color: #9fc2f4; background: var(--blue-soft); outline: none; }
+        .auth-message { min-height: 20px; margin: 10px 0 0; color: #c03b3b; font-size: 13px; line-height: 1.5; }
+        .auth-note { margin: 16px 0 0; color: #8897a8; font-size: 12px; line-height: 1.6; text-align: center; }
 
         .app-shell {
             width: min(1240px, calc(100% - 96px));
@@ -111,7 +208,7 @@
         }
         .nav-icon { width: 24px; flex: 0 0 24px; color: currentColor; font-size: 21px; text-align: center; }
         .sidebar-footer {
-            margin-top: auto;
+            margin-top: 14px;
             padding: 25px 10px 0;
             border-top: 1px solid rgba(191, 208, 223, 0.28);
             color: #aebdca;
@@ -119,6 +216,22 @@
             line-height: 1.8;
             text-align: center;
         }
+        .session-panel {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: auto;
+            padding: 14px 10px;
+            color: #c1cfdd;
+            border-top: 1px solid rgba(191, 208, 223, 0.22);
+            font-size: 12px;
+        }
+        .session-mode { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .session-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #93a4b5; box-shadow: 0 0 0 3px rgba(147, 164, 181, 0.10); }
+        body[data-auth-mode="owner"] .session-dot { background: #63d39b; box-shadow: 0 0 0 3px rgba(99, 211, 155, 0.12); }
+        .session-button { padding: 6px 10px; color: #dce8f3; border: 1px solid rgba(198, 218, 236, 0.26); border-radius: 7px; background: rgba(255, 255, 255, 0.05); cursor: pointer; }
+        .session-button:hover, .session-button:focus-visible { color: #fff; border-color: rgba(135, 181, 230, 0.58); background: rgba(92, 148, 207, 0.15); outline: none; }
 
         main {
             display: grid;
@@ -190,6 +303,19 @@
             background: rgba(255, 255, 255, 0.4);
             text-align: center;
         }
+        .owner-banner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: -8px 0 22px;
+            padding: 11px 14px;
+            color: #17633f;
+            border: 1px solid #b9e4ce;
+            border-radius: 10px;
+            background: rgba(225, 247, 235, 0.78);
+            font-size: 13px;
+        }
+        .owner-banner::before { content: "✓"; display: grid; place-items: center; width: 20px; height: 20px; color: #fff; border-radius: 50%; background: #42aa73; font-weight: 800; }
 
         .profile-card {
             position: relative;
@@ -322,6 +448,9 @@
         }
 
         @media (max-width: 980px) {
+            .auth-card { grid-template-columns: 0.8fr 1.2fr; }
+            .auth-brand { padding: 38px 30px; }
+            .auth-panel { padding: 40px; }
             .app-shell { width: calc(100% - 36px); margin: 18px auto; grid-template-columns: 1fr; gap: 16px; }
             .sidebar {
                 z-index: 20;
@@ -338,6 +467,7 @@
             .nav-list { display: flex; gap: 8px; padding-bottom: 3px; overflow-x: auto; scrollbar-width: thin; }
             .nav-item { flex: 0 0 auto; min-height: 43px; padding: 0 14px; font-size: 14px; }
             .nav-icon { width: auto; flex-basis: auto; font-size: 17px; }
+            .session-panel { margin-top: 10px; padding: 10px 3px 0; }
             .sidebar-footer { display: none; }
             main { gap: 16px; }
             .page-view { gap: 16px; }
@@ -347,6 +477,15 @@
 
         @media (max-width: 680px) {
             body { background-attachment: scroll; }
+            .auth-gate { align-items: start; padding: 14px; }
+            .auth-card { min-height: 0; grid-template-columns: 1fr; border-radius: 17px; }
+            .auth-brand { min-height: 150px; padding: 26px 24px; }
+            .auth-logo { font-size: 29px; }
+            .auth-brand-copy { margin-top: 7px; font-size: 12px; }
+            .auth-quote { display: none; }
+            .auth-panel { padding: 30px 24px; }
+            .auth-title { font-size: 28px; }
+            .auth-description { margin-bottom: 20px; }
             .app-shell { width: calc(100% - 20px); margin: 10px auto; gap: 10px; }
             .sidebar { top: 6px; padding: 14px 12px; border-radius: 14px; }
             main { gap: 10px; }
@@ -376,8 +515,40 @@
         }
     </style>
 </head>
-<body>
-    <div class="app-shell">
+<body class="auth-pending" data-auth-mode="pending">
+    <section class="auth-gate" id="authGate" aria-labelledby="authTitle">
+        <div class="auth-card">
+            <div class="auth-brand" aria-hidden="true">
+                <div>
+                    <h1 class="auth-logo">ZGJ Archive</h1>
+                    <p class="auth-brand-copy">个人档案馆</p>
+                </div>
+                <p class="auth-quote">记录 · 思考 · 构建 · 分享<br>一个持续生长的个人工作空间。</p>
+            </div>
+            <div class="auth-panel">
+                <p class="auth-eyebrow">Identity Access</p>
+                <h2 class="auth-title" id="authTitle">欢迎访问</h2>
+                <p class="auth-description">所有者可登录管理内容，其他访问者请使用游客模式浏览。</p>
+                <form class="auth-form" id="loginForm">
+                    <label class="auth-field">
+                        <span>用户名</span>
+                        <input id="loginUsername" name="username" value="zgj20051011" autocomplete="username" readonly required>
+                    </label>
+                    <label class="auth-field">
+                        <span>密码</span>
+                        <input id="loginPassword" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+                    </label>
+                    <button class="auth-primary" id="loginButton" type="submit">所有者登录</button>
+                </form>
+                <p class="auth-message" id="loginMessage" role="alert" aria-live="polite"></p>
+                <div class="auth-divider">或者</div>
+                <button class="auth-guest" id="guestButton" type="button">以游客身份进入</button>
+                <p class="auth-note">游客可以浏览公开内容，但不能新建、编辑或删除数据。</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="app-shell" id="appShell" inert>
         <aside class="sidebar" aria-label="主要导航">
             <div class="brand">
                 <h1>ZGJ Archive</h1>
@@ -392,6 +563,10 @@
                 <a class="nav-item" href="#chatgpt" data-route="chatgpt"><span class="nav-icon">◎</span><span>ChatGPT</span></a>
                 <a class="nav-item" href="#more"><span class="nav-icon">▦</span><span>更多</span></a>
             </nav>
+            <div class="session-panel">
+                <span class="session-mode"><span class="session-dot" aria-hidden="true"></span><span id="sessionLabel">身份确认中</span></span>
+                <button class="session-button" id="sessionButton" type="button">登录</button>
+            </div>
             <footer class="sidebar-footer">
                 <div>© <span id="copyrightYear"></span> ZGJ Archive</div>
                 <div>记录 · 思考 · 构建 · 分享</div>
@@ -438,6 +613,7 @@
                     <p class="content-kicker">Administration</p>
                     <h2 class="content-title" id="adminHeading">行政</h2>
                     <p class="content-lead">计划、资料与日常行政文件。</p>
+                    <div class="owner-banner" data-owner-only hidden>所有者权限已启用，后续编辑与保存功能将显示在这里。</div>
                     <ul class="file-list">
                         <li><a class="file-link" href="xingzheng_260826_001.txt" target="_blank" rel="noopener">行政第 001 个计划</a></li>
                     </ul>
@@ -483,6 +659,110 @@
                 blog: '博客｜ZGJ Archive',
                 chatgpt: 'ChatGPT｜ZGJ Archive'
             };
+            const authGate = document.getElementById('authGate');
+            const appShell = document.getElementById('appShell');
+            const loginForm = document.getElementById('loginForm');
+            const loginPassword = document.getElementById('loginPassword');
+            const loginButton = document.getElementById('loginButton');
+            const loginMessage = document.getElementById('loginMessage');
+            const guestButton = document.getElementById('guestButton');
+            const sessionLabel = document.getElementById('sessionLabel');
+            const sessionButton = document.getElementById('sessionButton');
+            let authMode = 'pending';
+
+            function applyAuthMode(mode) {
+                authMode = mode;
+                document.body.dataset.authMode = mode;
+                document.body.classList.remove('auth-pending');
+                authGate.hidden = true;
+                appShell.inert = false;
+                sessionLabel.textContent = mode === 'owner' ? '所有者模式' : '游客模式';
+                sessionButton.textContent = mode === 'owner' ? '退出' : '登录';
+                document.querySelectorAll('[data-owner-only]').forEach((element) => {
+                    element.hidden = mode !== 'owner';
+                });
+            }
+
+            function showLogin() {
+                authGate.hidden = false;
+                appShell.inert = true;
+                document.body.classList.add('auth-pending');
+                loginMessage.textContent = '';
+                loginPassword.value = '';
+                requestAnimationFrame(() => loginPassword.focus());
+            }
+
+            async function authRequest(options = {}) {
+                const response = await fetch('/api/auth', {
+                    cache: 'no-store',
+                    credentials: 'same-origin',
+                    ...options,
+                    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+                });
+                const data = await response.json().catch(() => ({}));
+                return { response, data };
+            }
+
+            async function restoreSession() {
+                try {
+                    const { response, data } = await authRequest();
+                    if (response.ok && data.authenticated) {
+                        sessionStorage.removeItem('zgjGuestMode');
+                        applyAuthMode('owner');
+                        return;
+                    }
+                } catch (error) {
+                    console.info('登录服务当前不可用，仍可使用游客模式。');
+                }
+
+                if (sessionStorage.getItem('zgjGuestMode') === '1') applyAuthMode('guest');
+                else showLogin();
+            }
+
+            loginForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                loginButton.disabled = true;
+                loginButton.textContent = '正在验证…';
+                loginMessage.textContent = '';
+                try {
+                    const { response, data } = await authRequest({
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'login',
+                            username: document.getElementById('loginUsername').value,
+                            password: loginPassword.value
+                        })
+                    });
+                    if (!response.ok || !data.authenticated) throw new Error(data.message || '用户名或密码不正确');
+                    sessionStorage.removeItem('zgjGuestMode');
+                    loginPassword.value = '';
+                    applyAuthMode('owner');
+                } catch (error) {
+                    loginMessage.textContent = error.message || '登录失败，请稍后重试';
+                    loginPassword.select();
+                } finally {
+                    loginButton.disabled = false;
+                    loginButton.textContent = '所有者登录';
+                }
+            });
+
+            guestButton.addEventListener('click', () => {
+                sessionStorage.setItem('zgjGuestMode', '1');
+                applyAuthMode('guest');
+            });
+
+            sessionButton.addEventListener('click', async () => {
+                if (authMode !== 'owner') {
+                    showLogin();
+                    return;
+                }
+                try {
+                    await authRequest({ method: 'POST', body: JSON.stringify({ action: 'logout' }) });
+                } finally {
+                    sessionStorage.removeItem('zgjGuestMode');
+                    showLogin();
+                }
+            });
 
             function sameDay(a, b) {
                 return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -566,6 +846,7 @@
             document.getElementById('copyrightYear').textContent = now.getFullYear();
             renderCalendar();
             renderRoute({ scroll: false });
+            restoreSession();
         })();
     </script>
 </body>
