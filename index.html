@@ -264,6 +264,7 @@
         }
 
         .content-card { min-height: 430px; padding: 34px 38px; }
+        .compact-content-card { min-height: 0; }
         .content-kicker {
             margin: 0 0 8px;
             color: var(--blue);
@@ -584,10 +585,10 @@
                 <a class="nav-item active" href="#home" data-route="home" aria-current="page"><span class="nav-icon">⌂</span><span>首页</span></a>
                 <a class="nav-item" href="#admin" data-route="admin"><span class="nav-icon">▤</span><span>行政</span></a>
                 <a class="nav-item" href="#blog" data-route="blog"><span class="nav-icon">✎</span><span>博客</span></a>
-                <a class="nav-item" href="#profile"><span class="nav-icon">⌘</span><span>工程</span></a>
-                <a class="nav-item" href="#calendar"><span class="nav-icon">⚗</span><span>实验室</span></a>
+                <a class="nav-item" href="#engineering" data-route="engineering"><span class="nav-icon">⌘</span><span>工程</span></a>
+                <a class="nav-item" href="#laboratory" data-route="laboratory"><span class="nav-icon">⚗</span><span>实验室</span></a>
                 <a class="nav-item" href="#chatgpt" data-route="chatgpt"><span class="nav-icon">◎</span><span>ChatGPT</span></a>
-                <a class="nav-item" href="#more"><span class="nav-icon">▦</span><span>更多</span></a>
+                <a class="nav-item" href="#more" data-route="more"><span class="nav-icon">▦</span><span>更多</span></a>
             </nav>
             <div class="session-panel">
                 <span class="session-mode"><span class="session-dot" aria-hidden="true"></span><span id="sessionLabel">身份确认中</span></span>
@@ -613,25 +614,12 @@
                         <div class="detail-row"><span class="detail-icon" aria-hidden="true">☵</span><span>微信</span><span>：</span><span class="detail-value">Ertion1011</span></div>
                         <div class="detail-row"><span class="detail-icon" aria-hidden="true">◇</span><span>简介</span><span>：</span><span class="detail-value">嵌入式 / 无人机 / 工程记录</span></div>
                     </div>
-                    <div class="tags" id="more" aria-label="兴趣标签">
+                    <div class="tags" aria-label="兴趣标签">
                         <span class="tag">▣ Embedded</span><span class="tag">⌁ Drone</span><span class="tag">↔ ESC</span><span class="tag">□ Projects</span>
                     </div>
                 </div>
             </section>
 
-            <section class="calendar-card card" id="calendar" aria-labelledby="calendarHeading">
-                <header class="calendar-head">
-                    <h2 class="calendar-title" id="calendarHeading"><span aria-hidden="true">▣</span>本月安排</h2>
-                    <div class="calendar-controls">
-                        <button class="icon-button" id="prevMonth" type="button" aria-label="上个月">‹</button>
-                        <div id="monthLabel" aria-live="polite"></div>
-                        <button class="icon-button" id="nextMonth" type="button" aria-label="下个月">›</button>
-                        <button class="today-button" id="todayButton" type="button">今天</button>
-                    </div>
-                </header>
-                <div class="weekdays" aria-hidden="true"><div>周一</div><div>周二</div><div>周三</div><div>周四</div><div>周五</div><div>周六</div><div>周日</div></div>
-                <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="月历"></div>
-            </section>
             </div>
 
             <div class="page-view" id="view-admin" data-view="admin" hidden>
@@ -640,9 +628,7 @@
                     <h2 class="content-title" id="adminHeading">行政</h2>
                     <p class="content-lead">计划、资料与日常行政文件。</p>
                     <div class="owner-banner" data-owner-only hidden>所有者权限已启用，后续编辑与保存功能将显示在这里。</div>
-                    <ul class="file-list">
-                        <li><a class="file-link" href="xingzheng_260826_001.txt" target="_blank" rel="noopener">行政第 001 个计划</a></li>
-                    </ul>
+                    <div class="empty-note">暂无行政文件</div>
                 </section>
             </div>
 
@@ -655,6 +641,36 @@
                 </section>
             </div>
 
+            <div class="page-view" id="view-engineering" data-view="engineering" hidden>
+                <section class="content-card card" aria-labelledby="engineeringHeading">
+                    <p class="content-kicker">Engineering</p>
+                    <h2 class="content-title" id="engineeringHeading">工程</h2>
+                    <p class="content-lead">这里用于整理嵌入式、无人机与其他工程项目。</p>
+                    <div class="empty-note">工程项目准备中</div>
+                </section>
+            </div>
+
+            <div class="page-view" id="view-laboratory" data-view="laboratory" hidden>
+                <section class="content-card compact-content-card card" aria-labelledby="laboratoryHeading">
+                    <p class="content-kicker">Laboratory</p>
+                    <h2 class="content-title" id="laboratoryHeading">实验室</h2>
+                    <p class="content-lead">实验计划、验证记录与日程安排。</p>
+                </section>
+                <section class="calendar-card card" aria-labelledby="calendarHeading">
+                    <header class="calendar-head">
+                        <h2 class="calendar-title" id="calendarHeading"><span aria-hidden="true">▣</span>本月安排</h2>
+                        <div class="calendar-controls">
+                            <button class="icon-button" id="prevMonth" type="button" aria-label="上个月">‹</button>
+                            <div id="monthLabel" aria-live="polite"></div>
+                            <button class="icon-button" id="nextMonth" type="button" aria-label="下个月">›</button>
+                            <button class="today-button" id="todayButton" type="button">今天</button>
+                        </div>
+                    </header>
+                    <div class="weekdays" aria-hidden="true"><div>周一</div><div>周二</div><div>周三</div><div>周四</div><div>周五</div><div>周六</div><div>周日</div></div>
+                    <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="月历"></div>
+                </section>
+            </div>
+
             <div class="page-view" id="view-chatgpt" data-view="chatgpt" hidden>
                 <section class="content-card card" aria-labelledby="chatgptHeading">
                     <p class="content-kicker">Interaction</p>
@@ -663,6 +679,17 @@
                     <ul class="file-list">
                         <li><a class="file-link" href="jiaohu_liuyan.txt" target="_blank" rel="noopener">留言</a></li>
                     </ul>
+                </section>
+            </div>
+
+            <div class="page-view" id="view-more" data-view="more" hidden>
+                <section class="content-card card" aria-labelledby="moreHeading">
+                    <p class="content-kicker">More</p>
+                    <h2 class="content-title" id="moreHeading">更多</h2>
+                    <p class="content-lead">其他资料、兴趣方向与待扩展内容。</p>
+                    <div class="tags" aria-label="兴趣方向">
+                        <span class="tag">▣ Embedded</span><span class="tag">⌁ Drone</span><span class="tag">↔ ESC</span><span class="tag">□ Projects</span>
+                    </div>
                 </section>
             </div>
         </main>
@@ -678,12 +705,14 @@
             const views = [...document.querySelectorAll('[data-view]')];
             const navItems = [...document.querySelectorAll('.nav-item')];
             const viewRoutes = new Set(views.map((view) => view.dataset.view));
-            const homeAnchors = new Set(['profile', 'calendar', 'more']);
             const pageTitles = {
                 home: 'ZGJ Archive｜个人档案馆',
                 admin: '行政｜ZGJ Archive',
                 blog: '博客｜ZGJ Archive',
-                chatgpt: 'ChatGPT｜ZGJ Archive'
+                engineering: '工程｜ZGJ Archive',
+                laboratory: '实验室｜ZGJ Archive',
+                chatgpt: 'ChatGPT｜ZGJ Archive',
+                more: '更多｜ZGJ Archive'
             };
             const authGate = document.getElementById('authGate');
             const appShell = document.getElementById('appShell');
@@ -829,16 +858,14 @@
                 const route = viewRoutes.has(target) ? target : 'home';
                 views.forEach((view) => { view.hidden = view.dataset.view !== route; });
                 navItems.forEach((item) => {
-                    const active = item.getAttribute('href') === `#${target}` || (target === 'home' && item.dataset.route === 'home');
+                    const active = item.dataset.route === route;
                     item.classList.toggle('active', active);
                     if (active) item.setAttribute('aria-current', 'page');
                     else item.removeAttribute('aria-current');
                 });
                 document.title = pageTitles[route];
 
-                if (homeAnchors.has(target) && options.scroll !== false) {
-                    requestAnimationFrame(() => document.getElementById(target)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-                } else if (options.scroll !== false) {
+                if (options.scroll !== false) {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             }
