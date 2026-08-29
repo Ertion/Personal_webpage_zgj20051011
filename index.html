@@ -571,7 +571,7 @@
                 <p class="auth-message" id="loginMessage" role="alert" aria-live="polite"></p>
                 <div class="auth-divider">或者</div>
                 <button class="auth-guest" id="guestButton" type="button">以游客身份进入</button>
-                <p class="auth-note">当前建设阶段暂不区分内容管理权限，后续可直接启用所有者校验。</p>
+                <p class="auth-note">游客仅可阅读公开内容；所有新增、编辑与删除操作均需要所有者登录。</p>
             </div>
         </div>
     </section>
@@ -629,7 +629,7 @@
                     <h2 class="content-title" id="adminHeading">行政</h2>
                     <p class="content-lead">计划、资料与日常行政文件。</p>
                     <div class="database-toolbar">
-                        <button class="database-primary" type="button" data-content-create="admin">新增行政内容</button>
+                        <button class="database-primary" type="button" data-content-create="admin" data-owner-only hidden>新增行政内容</button>
                         <span class="database-status" data-content-status="admin" aria-live="polite"></span>
                     </div>
                     <div class="database-list" data-content-list="admin"></div>
@@ -642,7 +642,7 @@
                     <h2 class="content-title" id="blogHeading">博客</h2>
                     <p class="content-lead">这里用于整理日志、思考与阶段性记录。</p>
                     <div class="database-toolbar">
-                        <button class="database-primary" type="button" data-content-create="blog">撰写文章</button>
+                        <button class="database-primary" type="button" data-content-create="blog" data-owner-only hidden>撰写文章</button>
                         <span class="database-status" data-content-status="blog" aria-live="polite"></span>
                     </div>
                     <div class="database-list" data-content-list="blog"></div>
@@ -655,7 +655,7 @@
                     <h2 class="content-title" id="engineeringHeading">工程</h2>
                     <p class="content-lead">这里用于整理嵌入式、无人机与其他工程项目。</p>
                     <div class="database-toolbar">
-                        <button class="database-primary" type="button" data-content-create="engineering">新增工程记录</button>
+                        <button class="database-primary" type="button" data-content-create="engineering" data-owner-only hidden>新增工程记录</button>
                         <span class="database-status" data-content-status="engineering" aria-live="polite"></span>
                     </div>
                     <div class="database-list" data-content-list="engineering"></div>
@@ -667,6 +667,11 @@
                     <p class="content-kicker">Laboratory</p>
                     <h2 class="content-title" id="laboratoryHeading">实验室</h2>
                     <p class="content-lead">实验计划、验证记录与日程安排。</p>
+                    <div class="database-toolbar">
+                        <button class="database-primary" type="button" data-content-create="laboratory" data-owner-only hidden>新增实验记录</button>
+                        <span class="database-status" data-content-status="laboratory" aria-live="polite"></span>
+                    </div>
+                    <div class="database-list" data-content-list="laboratory"></div>
                 </section>
                 <section class="calendar-card card" aria-labelledby="calendarHeading">
                     <header class="calendar-head">
@@ -687,7 +692,7 @@
                             <p class="content-kicker">Schedule</p>
                             <h2 id="eventListHeading">日程列表</h2>
                         </div>
-                        <button class="database-primary" id="createEventButton" type="button">新增日程</button>
+                        <button class="database-primary" id="createEventButton" type="button" data-owner-only hidden>新增日程</button>
                     </header>
                     <p class="database-status" id="eventStatus" aria-live="polite"></p>
                     <div class="database-list" id="eventList"></div>
@@ -702,6 +707,11 @@
                     <ul class="file-list">
                         <li><a class="file-link" href="jiaohu_liuyan.txt" target="_blank" rel="noopener">留言</a></li>
                     </ul>
+                    <div class="database-toolbar">
+                        <button class="database-primary" type="button" data-content-create="chatgpt" data-owner-only hidden>新增交互记录</button>
+                        <span class="database-status" data-content-status="chatgpt" aria-live="polite"></span>
+                    </div>
+                    <div class="database-list" data-content-list="chatgpt"></div>
                 </section>
             </div>
 
@@ -713,12 +723,17 @@
                     <div class="tags" aria-label="兴趣方向">
                         <span class="tag">▣ Embedded</span><span class="tag">⌁ Drone</span><span class="tag">↔ ESC</span><span class="tag">□ Projects</span>
                     </div>
+                    <div class="database-toolbar">
+                        <button class="database-primary" type="button" data-content-create="more" data-owner-only hidden>新增其他内容</button>
+                        <span class="database-status" data-content-status="more" aria-live="polite"></span>
+                    </div>
+                    <div class="database-list" data-content-list="more"></div>
                 </section>
             </div>
         </main>
     </div>
 
-    <dialog class="database-dialog" id="contentDialog" aria-labelledby="contentDialogTitle">
+    <dialog class="database-dialog" id="contentDialog" aria-labelledby="contentDialogTitle" data-owner-only hidden>
         <form class="database-form" id="contentForm">
             <input id="contentId" type="hidden">
             <input id="contentSection" type="hidden">
@@ -759,7 +774,7 @@
         </form>
     </dialog>
 
-    <dialog class="database-dialog" id="eventDialog" aria-labelledby="eventDialogTitle">
+    <dialog class="database-dialog" id="eventDialog" aria-labelledby="eventDialogTitle" data-owner-only hidden>
         <form class="database-form" id="eventForm">
             <input id="eventId" type="hidden">
             <header class="database-dialog-head">
@@ -839,7 +854,9 @@
                 sessionButton.textContent = mode === 'owner' ? '退出' : '登录';
                 document.querySelectorAll('[data-owner-only]').forEach((element) => {
                     element.hidden = mode !== 'owner';
+                    if (mode !== 'owner' && element instanceof HTMLDialogElement && element.open) element.close();
                 });
+                document.dispatchEvent(new CustomEvent('auth-mode-changed', { detail: { mode } }));
             }
 
             function showLogin() {

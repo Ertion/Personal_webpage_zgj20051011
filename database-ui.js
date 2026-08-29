@@ -10,6 +10,10 @@
     const contentState = new Map();
     let calendarEvents = [];
 
+    function isOwner() {
+        return document.body.dataset.authMode === 'owner';
+    }
+
     async function api(path, options = {}) {
         const response = await fetch(path, {
             cache: 'no-store',
@@ -84,11 +88,15 @@
             }
             const actions = document.createElement('div');
             actions.className = 'database-item-actions';
-            actions.append(
-                makeButton('编辑', 'database-item-button', () => openContentDialog(section, item)),
-                makeButton('删除', 'database-item-button is-danger', () => removeContent(section, item))
-            );
-            head.append(headingWrap, actions);
+            if (isOwner()) {
+                actions.append(
+                    makeButton('编辑', 'database-item-button', () => openContentDialog(section, item)),
+                    makeButton('删除', 'database-item-button is-danger', () => removeContent(section, item))
+                );
+                head.append(headingWrap, actions);
+            } else {
+                head.appendChild(headingWrap);
+            }
             article.appendChild(head);
             if (item.body) {
                 const body = document.createElement('p');
@@ -129,6 +137,7 @@
     const contentSaveButton = document.getElementById('contentSaveButton');
 
     function openContentDialog(section, item = null) {
+        if (!isOwner()) return;
         contentForm.reset();
         document.getElementById('contentId').value = item?.id || '';
         document.getElementById('contentSection').value = section;
@@ -147,6 +156,10 @@
 
     contentForm.addEventListener('submit', async (event) => {
         event.preventDefault();
+        if (!isOwner()) {
+            setMessage(contentFormMessage, '只有所有者可以修改数据', true);
+            return;
+        }
         const id = document.getElementById('contentId').value;
         const section = document.getElementById('contentSection').value;
         const payload = {
@@ -176,6 +189,7 @@
     });
 
     async function removeContent(section, item) {
+        if (!isOwner()) return;
         if (!window.confirm(`确定删除“${item.title}”吗？`)) return;
         const status = document.querySelector(`[data-content-status="${section}"]`);
         setMessage(status, '正在删除…');
@@ -213,7 +227,9 @@
     function renderEvents() {
         eventList.replaceChildren();
         if (!calendarEvents.length) {
-            eventList.appendChild(emptyState('本月暂无日程，点击日期或“新增日程”开始记录。'));
+            eventList.appendChild(emptyState(isOwner()
+                ? '本月暂无日程，点击日期或“新增日程”开始记录。'
+                : '本月暂无公开日程。'));
             decorateCalendar();
             return;
         }
@@ -235,11 +251,15 @@
             }
             const actions = document.createElement('div');
             actions.className = 'database-item-actions';
-            actions.append(
-                makeButton('编辑', 'database-item-button', () => openEventDialog(item.event_date, item)),
-                makeButton('删除', 'database-item-button is-danger', () => removeEvent(item))
-            );
-            head.append(titleWrap, actions);
+            if (isOwner()) {
+                actions.append(
+                    makeButton('编辑', 'database-item-button', () => openEventDialog(item.event_date, item)),
+                    makeButton('删除', 'database-item-button is-danger', () => removeEvent(item))
+                );
+                head.append(titleWrap, actions);
+            } else {
+                head.appendChild(titleWrap);
+            }
             const meta = document.createElement('div');
             meta.className = 'database-item-meta';
             const statusLabels = { planned: '计划中', in_progress: '进行中', completed: '已完成' };
@@ -275,6 +295,7 @@
     }
 
     function openEventDialog(date = defaultEventDate(), item = null) {
+        if (!isOwner()) return;
         eventForm.reset();
         document.getElementById('eventId').value = item?.id || '';
         document.getElementById('eventDate').value = item?.event_date || date;
@@ -290,6 +311,10 @@
 
     eventForm.addEventListener('submit', async (event) => {
         event.preventDefault();
+        if (!isOwner()) {
+            setMessage(eventFormMessage, '只有所有者可以修改数据', true);
+            return;
+        }
         const id = document.getElementById('eventId').value;
         const payload = {
             event_date: document.getElementById('eventDate').value,
@@ -317,6 +342,7 @@
     });
 
     async function removeEvent(item) {
+        if (!isOwner()) return;
         if (!window.confirm(`确定删除“${item.title}”吗？`)) return;
         setMessage(eventStatus, '正在删除…');
         try {
@@ -345,6 +371,17 @@
         if (!cell) return;
         event.preventDefault();
         openEventDialog(cell.dataset.date);
+    });
+
+    document.addEventListener('auth-mode-changed', async () => {
+        document.querySelectorAll('[data-content-list]').forEach((container) => {
+            renderContent(container.dataset.contentList);
+        });
+        renderEvents();
+        await Promise.all([
+            ...[...document.querySelectorAll('[data-content-list]')].map((container) => loadContent(container.dataset.contentList)),
+            loadEvents()
+        ]);
     });
 
     document.querySelectorAll('[data-content-list]').forEach((container) => loadContent(container.dataset.contentList));

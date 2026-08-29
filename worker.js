@@ -1,8 +1,6 @@
 const OWNER_USERNAME = 'zgj20051011';
 const SESSION_COOKIE = 'zgj_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
-// 当前按需求开放内容写入。后续需要区分权限时改为 true，即可复用现有登录会话。
-const CONTENT_WRITES_REQUIRE_OWNER = false;
 const CONTENT_SECTIONS = new Set(['admin', 'blog', 'engineering', 'laboratory', 'chatgpt', 'more']);
 const CONTENT_STATUSES = new Set(['draft', 'published']);
 const EVENT_STATUSES = new Set(['planned', 'in_progress', 'completed']);
@@ -132,15 +130,14 @@ function databaseRequired(env) {
     return hasDatabase(env) ? null : json({ message: 'D1 数据库尚未绑定' }, 503);
 }
 
-async function canWriteContent(request, env) {
-    if (!CONTENT_WRITES_REQUIRE_OWNER) return true;
+async function isOwner(request, env) {
     if (!env.SESSION_SECRET) return false;
     return verifySessionToken(readCookie(request, SESSION_COOKIE), env.SESSION_SECRET);
 }
 
 async function authorizeMutation(request, env) {
     if (!isSameOrigin(request)) return json({ message: '请求来源无效' }, 403);
-    if (!await canWriteContent(request, env)) return json({ message: '需要所有者权限' }, 401);
+    if (!await isOwner(request, env)) return json({ message: '只有所有者可以修改数据' }, 401);
     return null;
 }
 
@@ -182,10 +179,18 @@ async function listContent(request, env) {
     const section = url.searchParams.get('section');
     if (section && !CONTENT_SECTIONS.has(section)) return json({ message: '内容栏目无效' }, 400);
 
+    const owner = await isOwner(request, env);
     const fields = 'id, section, title, summary, body, status, visibility, created_at, updated_at';
-    const statement = section
-        ? env.DB.prepare(`SELECT ${fields} FROM content_items WHERE section = ? ORDER BY created_at DESC LIMIT 100`).bind(section)
-        : env.DB.prepare(`SELECT ${fields} FROM content_items ORDER BY created_at DESC LIMIT 100`);
+    let statement;
+    if (owner) {
+        statement = section
+            ? env.DB.prepare(`SELECT ${fields} FROM content_items WHERE section = ? ORDER BY created_at DESC LIMIT 100`).bind(section)
+            : env.DB.prepare(`SELECT ${fields} FROM content_items ORDER BY created_at DESC LIMIT 100`);
+    } else {
+        statement = section
+            ? env.DB.prepare(`SELECT ${fields} FROM content_items WHERE section = ? AND status = 'published' AND visibility = 'public' ORDER BY created_at DESC LIMIT 100`).bind(section)
+            : env.DB.prepare(`SELECT ${fields} FROM content_items WHERE status = 'published' AND visibility = 'public' ORDER BY created_at DESC LIMIT 100`);
+    }
     const result = await statement.all();
     return json({ items: result.results || [] });
 }
@@ -215,12 +220,14 @@ async function createContent(request, env) {
     return json({ item }, 201);
 }
 
-async function getContentItem(id, env) {
+async function getContentItem(request, id, env) {
     const missing = databaseRequired(env);
     if (missing) return missing;
+    const owner = await isOwner(request, env);
+    const visibilityFilter = owner ? '' : " AND status = 'published' AND visibility = 'public'";
     const item = await env.DB.prepare(`
         SELECT id, section, title, summary, body, status, visibility, created_at, updated_at
-        FROM content_items WHERE id = ?
+        FROM content_items WHERE id = ?${visibilityFilter}
     `).bind(id).first();
     return item ? json({ item }) : json({ message: '内容不存在' }, 404);
 }
@@ -260,10 +267,18 @@ async function listEvents(request, env) {
     if (missing) return missing;
     const month = new URL(request.url).searchParams.get('month');
     if (month && !/^\d{4}-\d{2}$/.test(month)) return json({ message: '月份格式无效' }, 400);
+    const owner = await isOwner(request, env);
     const fields = 'id, title, description, event_date, status, visibility, created_at, updated_at';
-    const statement = month
-        ? env.DB.prepare(`SELECT ${fields} FROM calendar_events WHERE event_date LIKE ? ORDER BY event_date, created_at`).bind(`${month}-%`)
-        : env.DB.prepare(`SELECT ${fields} FROM calendar_events ORDER BY event_date, created_at LIMIT 200`);
+    let statement;
+    if (owner) {
+        statement = month
+            ? env.DB.prepare(`SELECT ${fields} FROM calendar_events WHERE event_date LIKE ? ORDER BY event_date, created_at`).bind(`${month}-%`)
+            : env.DB.prepare(`SELECT ${fields} FROM calendar_events ORDER BY event_date, created_at LIMIT 200`);
+    } else {
+        statement = month
+            ? env.DB.prepare(`SELECT ${fields} FROM calendar_events WHERE event_date LIKE ? AND visibility = 'public' ORDER BY event_date, created_at`).bind(`${month}-%`)
+            : env.DB.prepare(`SELECT ${fields} FROM calendar_events WHERE visibility = 'public' ORDER BY event_date, created_at LIMIT 200`);
+    }
     const result = await statement.all();
     return json({ events: result.results || [] });
 }
@@ -389,7 +404,7 @@ export default {
         const contentMatch = url.pathname.match(/^\/api\/content\/([^/]+)\/?$/);
         if (contentMatch) {
             const id = decodeURIComponent(contentMatch[1]);
-            if (request.method === 'GET') return getContentItem(id, env);
+            if (request.method === 'GET') return getContentItem(request, id, env);
             if (request.method === 'PATCH') return updateContent(request, id, env);
             if (request.method === 'DELETE') return deleteContent(request, id, env);
             return methodNotAllowed('GET, PATCH, DELETE');
