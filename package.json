@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply ZGJ-archive-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply ZGJ-archive-db --remote",
     "test": "node --test tests/*.test.mjs"
   },
   "devDependencies": {

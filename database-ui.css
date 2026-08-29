@@ -1,0 +1,109 @@
+.database-toolbar,
+.event-card-head,
+.database-form-actions,
+.database-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.database-toolbar { margin-bottom: 18px; }
+.database-status { min-height: 20px; margin: 0; color: #718198; font-size: 13px; }
+.database-status.is-error, .database-form-message.is-error { color: #b52d2d; }
+
+.database-primary,
+.database-secondary,
+.database-close,
+.database-item-button {
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font: inherit;
+    cursor: pointer;
+    transition: 160ms ease;
+}
+
+.database-primary {
+    min-height: 40px;
+    padding: 0 16px;
+    color: #fff;
+    border-color: #2f78e8;
+    background: linear-gradient(135deg, #2f78e8, #2364c8);
+}
+
+.database-primary:hover,
+.database-primary:focus-visible { background: #286bd2; transform: translateY(-1px); outline: none; }
+.database-primary:disabled { opacity: 0.6; cursor: wait; transform: none; }
+
+.database-secondary,
+.database-item-button {
+    min-height: 36px;
+    padding: 0 13px;
+    color: #2b4059;
+    border-color: #cbd9e7;
+    background: #fff;
+}
+
+.database-secondary:hover,
+.database-item-button:hover,
+.database-secondary:focus-visible,
+.database-item-button:focus-visible { color: #2166cc; border-color: #9fc2f4; background: #edf5ff; outline: none; }
+.database-item-button.is-danger:hover,
+.database-item-button.is-danger:focus-visible { color: #b52d2d; border-color: #efb8b8; background: #fff2f2; }
+
+.database-list { display: grid; gap: 14px; }
+.database-empty { padding: 26px; color: #718198; border: 1px dashed #b9cada; border-radius: 12px; background: rgba(255,255,255,0.4); text-align: center; }
+.database-item { padding: 20px; border: 1px solid #d5e2ef; border-radius: 13px; background: rgba(255,255,255,0.68); }
+.database-item-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.database-item h3 { margin: 0; color: #18283b; font-size: 19px; }
+.database-item-summary { margin: 8px 0 0; color: #5e7086; line-height: 1.7; }
+.database-item-body { margin: 14px 0 0; color: #2f4055; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.database-item-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; color: #7a899b; font-size: 12px; }
+.database-badge { padding: 4px 8px; color: #3267a7; border-radius: 999px; background: #eaf3ff; }
+.database-item-actions { display: flex; flex: 0 0 auto; gap: 8px; }
+
+.event-card { padding: 26px 30px 30px; }
+.event-card-head { align-items: flex-end; margin-bottom: 12px; }
+.event-card-head h2 { margin: 0; color: #172336; font-size: 23px; }
+.calendar-day { cursor: pointer; }
+.calendar-day:focus-visible { z-index: 2; outline: 3px solid rgba(47,120,232,0.35); outline-offset: -3px; }
+.calendar-event-count { position: absolute; right: 7px; bottom: 7px; min-width: 19px; height: 19px; padding: 0 5px; color: #fff; border-radius: 10px; background: #2f78e8; font-size: 11px; line-height: 19px; text-align: center; }
+.calendar-day.today .calendar-event-count { right: 7px; bottom: 7px; }
+
+.database-dialog {
+    width: min(680px, calc(100% - 28px));
+    max-height: calc(100dvh - 32px);
+    padding: 0;
+    overflow: auto;
+    color: #172336;
+    border: 1px solid rgba(255,255,255,0.8);
+    border-radius: 18px;
+    background: #f8fbff;
+    box-shadow: 0 28px 80px rgba(4,18,31,0.42);
+}
+.database-dialog::backdrop { background: rgba(5,18,31,0.58); backdrop-filter: blur(4px); }
+.database-form { display: grid; gap: 17px; padding: 28px; }
+.database-dialog-head { align-items: flex-start; padding-bottom: 6px; }
+.database-dialog-head h2 { margin: 0; font-size: 27px; }
+.database-close { width: 38px; height: 38px; color: #506278; border-color: #d1ddea; background: #fff; font-size: 24px; line-height: 1; }
+.database-close:hover, .database-close:focus-visible { color: #2166cc; border-color: #9fc2f4; outline: none; }
+.database-field { display: grid; gap: 7px; color: #344a63; font-size: 13px; font-weight: 700; }
+.database-field input,
+.database-field textarea,
+.database-field select { width: 100%; padding: 11px 12px; color: #17283c; border: 1px solid #cbd9e7; border-radius: 9px; background: #fff; font: inherit; font-weight: 500; outline: none; }
+.database-field textarea { resize: vertical; line-height: 1.7; }
+.database-field input:focus,
+.database-field textarea:focus,
+.database-field select:focus { border-color: #6da3ec; box-shadow: 0 0 0 3px rgba(47,120,232,0.12); }
+.database-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.database-form-message { min-height: 20px; margin: 0; color: #607086; font-size: 13px; }
+.database-form-actions { justify-content: flex-end; padding-top: 4px; }
+
+@media (max-width: 680px) {
+    .database-toolbar, .event-card-head, .database-item-head { align-items: stretch; flex-direction: column; }
+    .database-form-row { grid-template-columns: 1fr; }
+    .database-item-actions { align-self: flex-start; }
+    .database-dialog { width: calc(100% - 16px); max-height: calc(100dvh - 16px); }
+    .database-form { padding: 22px 18px; }
+    .event-card { padding: 22px 20px; }
+}

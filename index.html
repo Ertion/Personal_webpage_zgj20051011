@@ -6,6 +6,7 @@
     <meta name="description" content="赵冠杰的个人档案馆，记录嵌入式、无人机与工程实践。">
     <meta name="theme-color" content="#0d2236">
     <title>ZGJ Archive｜个人档案馆</title>
+    <link rel="stylesheet" href="database-ui.css">
     <style>
         :root {
             --navy: #0c2033;
@@ -570,7 +571,7 @@
                 <p class="auth-message" id="loginMessage" role="alert" aria-live="polite"></p>
                 <div class="auth-divider">或者</div>
                 <button class="auth-guest" id="guestButton" type="button">以游客身份进入</button>
-                <p class="auth-note">游客可以浏览公开内容，但不能新建、编辑或删除数据。</p>
+                <p class="auth-note">当前建设阶段暂不区分内容管理权限，后续可直接启用所有者校验。</p>
             </div>
         </div>
     </section>
@@ -627,8 +628,11 @@
                     <p class="content-kicker">Administration</p>
                     <h2 class="content-title" id="adminHeading">行政</h2>
                     <p class="content-lead">计划、资料与日常行政文件。</p>
-                    <div class="owner-banner" data-owner-only hidden>所有者权限已启用，后续编辑与保存功能将显示在这里。</div>
-                    <div class="empty-note">暂无行政文件</div>
+                    <div class="database-toolbar">
+                        <button class="database-primary" type="button" data-content-create="admin">新增行政内容</button>
+                        <span class="database-status" data-content-status="admin" aria-live="polite"></span>
+                    </div>
+                    <div class="database-list" data-content-list="admin"></div>
                 </section>
             </div>
 
@@ -637,7 +641,11 @@
                     <p class="content-kicker">Journal</p>
                     <h2 class="content-title" id="blogHeading">博客</h2>
                     <p class="content-lead">这里用于整理日志、思考与阶段性记录。</p>
-                    <div class="empty-note">博客内容准备中</div>
+                    <div class="database-toolbar">
+                        <button class="database-primary" type="button" data-content-create="blog">撰写文章</button>
+                        <span class="database-status" data-content-status="blog" aria-live="polite"></span>
+                    </div>
+                    <div class="database-list" data-content-list="blog"></div>
                 </section>
             </div>
 
@@ -646,7 +654,11 @@
                     <p class="content-kicker">Engineering</p>
                     <h2 class="content-title" id="engineeringHeading">工程</h2>
                     <p class="content-lead">这里用于整理嵌入式、无人机与其他工程项目。</p>
-                    <div class="empty-note">工程项目准备中</div>
+                    <div class="database-toolbar">
+                        <button class="database-primary" type="button" data-content-create="engineering">新增工程记录</button>
+                        <span class="database-status" data-content-status="engineering" aria-live="polite"></span>
+                    </div>
+                    <div class="database-list" data-content-list="engineering"></div>
                 </section>
             </div>
 
@@ -668,6 +680,17 @@
                     </header>
                     <div class="weekdays" aria-hidden="true"><div>周一</div><div>周二</div><div>周三</div><div>周四</div><div>周五</div><div>周六</div><div>周日</div></div>
                     <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="月历"></div>
+                </section>
+                <section class="event-card card" aria-labelledby="eventListHeading">
+                    <header class="event-card-head">
+                        <div>
+                            <p class="content-kicker">Schedule</p>
+                            <h2 id="eventListHeading">日程列表</h2>
+                        </div>
+                        <button class="database-primary" id="createEventButton" type="button">新增日程</button>
+                    </header>
+                    <p class="database-status" id="eventStatus" aria-live="polite"></p>
+                    <div class="database-list" id="eventList"></div>
                 </section>
             </div>
 
@@ -694,6 +717,87 @@
             </div>
         </main>
     </div>
+
+    <dialog class="database-dialog" id="contentDialog" aria-labelledby="contentDialogTitle">
+        <form class="database-form" id="contentForm">
+            <input id="contentId" type="hidden">
+            <input id="contentSection" type="hidden">
+            <header class="database-dialog-head">
+                <div>
+                    <p class="content-kicker">Database Content</p>
+                    <h2 id="contentDialogTitle">新增内容</h2>
+                </div>
+                <button class="database-close" type="button" data-close-dialog="contentDialog" aria-label="关闭">×</button>
+            </header>
+            <label class="database-field">
+                <span>标题</span>
+                <input id="contentTitle" maxlength="160" required>
+            </label>
+            <label class="database-field">
+                <span>摘要</span>
+                <input id="contentSummary" maxlength="600">
+            </label>
+            <label class="database-field">
+                <span>正文</span>
+                <textarea id="contentBody" rows="10" maxlength="200000"></textarea>
+            </label>
+            <div class="database-form-row">
+                <label class="database-field">
+                    <span>状态</span>
+                    <select id="contentStatus"><option value="draft">草稿</option><option value="published">已发布</option></select>
+                </label>
+                <label class="database-field">
+                    <span>可见范围</span>
+                    <select id="contentVisibility"><option value="public">公开</option><option value="private">私有</option></select>
+                </label>
+            </div>
+            <p class="database-form-message" id="contentFormMessage" aria-live="polite"></p>
+            <footer class="database-form-actions">
+                <button class="database-secondary" type="button" data-close-dialog="contentDialog">取消</button>
+                <button class="database-primary" id="contentSaveButton" type="submit">保存</button>
+            </footer>
+        </form>
+    </dialog>
+
+    <dialog class="database-dialog" id="eventDialog" aria-labelledby="eventDialogTitle">
+        <form class="database-form" id="eventForm">
+            <input id="eventId" type="hidden">
+            <header class="database-dialog-head">
+                <div>
+                    <p class="content-kicker">Calendar Event</p>
+                    <h2 id="eventDialogTitle">新增日程</h2>
+                </div>
+                <button class="database-close" type="button" data-close-dialog="eventDialog" aria-label="关闭">×</button>
+            </header>
+            <label class="database-field">
+                <span>日期</span>
+                <input id="eventDate" type="date" required>
+            </label>
+            <label class="database-field">
+                <span>标题</span>
+                <input id="eventTitle" maxlength="160" required>
+            </label>
+            <label class="database-field">
+                <span>说明</span>
+                <textarea id="eventDescription" rows="6" maxlength="20000"></textarea>
+            </label>
+            <div class="database-form-row">
+                <label class="database-field">
+                    <span>状态</span>
+                    <select id="eventState"><option value="planned">计划中</option><option value="in_progress">进行中</option><option value="completed">已完成</option></select>
+                </label>
+                <label class="database-field">
+                    <span>可见范围</span>
+                    <select id="eventVisibility"><option value="private">私有</option><option value="public">公开</option></select>
+                </label>
+            </div>
+            <p class="database-form-message" id="eventFormMessage" aria-live="polite"></p>
+            <footer class="database-form-actions">
+                <button class="database-secondary" type="button" data-close-dialog="eventDialog">取消</button>
+                <button class="database-primary" id="eventSaveButton" type="submit">保存</button>
+            </footer>
+        </form>
+    </dialog>
 
     <script>
         (() => {
@@ -831,6 +935,7 @@
                 const firstDay = new Date(year, month, 1);
                 const mondayOffset = (firstDay.getDay() + 6) % 7;
                 const startDate = new Date(year, month, 1 - mondayOffset);
+                grid.dataset.month = `${year}-${String(month + 1).padStart(2, '0')}`;
 
                 for (let index = 0; index < 42; index += 1) {
                     const date = new Date(startDate);
@@ -838,6 +943,8 @@
                     const cell = document.createElement('div');
                     cell.className = 'calendar-day';
                     cell.setAttribute('role', 'gridcell');
+                    cell.tabIndex = 0;
+                    cell.dataset.date = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                     cell.textContent = date.getDate();
                     cell.setAttribute('aria-label', `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`);
                     if (date.getMonth() !== month) cell.classList.add('other-month');
@@ -847,6 +954,7 @@
                     }
                     grid.appendChild(cell);
                 }
+                grid.dispatchEvent(new CustomEvent('calendar-rendered', { detail: { month: grid.dataset.month } }));
             }
 
             function currentTarget() {
@@ -902,5 +1010,6 @@
             restoreSession();
         })();
     </script>
+    <script src="database-ui.js"></script>
 </body>
 </html>

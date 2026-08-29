@@ -12,6 +12,13 @@
   "observability": {
     "enabled": true
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ZGJ-archive-db",
+      "database_id": "c1cb9fce-2135-4397-afab-06d7ed498bec"
+    }
+  ],
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
