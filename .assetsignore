@@ -1,22 +1,13 @@
-# Development dependencies and caches
-node_modules/
-.pnpm-store/
-.wrangler/
-
-# Repository and local tooling metadata
 .git/
-.agents/
-.codex/
-.env*
-.dev.vars*
-
-# Server source, database files, tests, and deployment configuration
+.wrangler/
+.pnpm-store/
+node_modules/
 functions/
-worker/
-tests/
 migrations/
-worker.js
-wrangler.jsonc
+tests/
+worker/
+*.md
 package.json
 pnpm-lock.yaml
-CLOUDFLARE_LOGIN_SETUP.md
+wrangler.jsonc
+worker.js

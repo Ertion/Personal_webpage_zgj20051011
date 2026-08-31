@@ -46,6 +46,144 @@ test('未绑定 D1 时内容接口返回明确错误', async () => {
     assert.equal((await response.json()).message, 'D1 数据库尚未绑定');
 });
 
+test('未绑定 D1 时 Steam 接口返回明确错误', async () => {
+    const response = await worker.fetch(new Request('https://example.com/api/steam'), env);
+    assert.equal(response.status, 503);
+    assert.equal((await response.json()).message, 'D1 数据库尚未绑定');
+});
+
+test('首页 Steam 接口读取站长最后一次缓存', async () => {
+    const database = {
+        prepare(sql) {
+            assert.match(sql, /FROM steam_profile_cache/);
+            return {
+                bind(steamId) {
+                    assert.equal(steamId, '76561199258285994');
+                    return {
+                        async first() {
+                            return {
+                                steam_id: steamId,
+                                profile_name: '测试玩家',
+                                avatar_url: 'https://example.com/avatar.jpg',
+                                profile_url: `https://steamcommunity.com/profiles/${steamId}/`,
+                                persona_state: 1,
+                                status_label: '在线',
+                                game_count: 2,
+                                played_game_count: 1,
+                                total_playtime_minutes: 600,
+                                games_json: JSON.stringify([
+                                    { appId: 1, name: 'Test Game', playtimeMinutes: 600, iconUrl: '' }
+                                ]),
+                                queried_at: '2026-08-31T00:00:00.000Z'
+                            };
+                        }
+                    };
+                }
+            };
+        }
+    };
+    const response = await worker.fetch(
+        new Request('https://example.com/api/steam'),
+        { ...env, DB: database }
+    );
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.source, 'cache');
+    assert.equal(data.isOwner, true);
+    assert.equal(data.profile.name, '测试玩家');
+    assert.equal(data.profile.totalPlaytimeMinutes, 600);
+});
+
+test('首页首次加载会从 Steam 获取并缓存站长数据', async () => {
+    let storedValues;
+    const database = {
+        prepare(sql) {
+            if (/FROM steam_profile_cache/.test(sql)) {
+                return { bind() { return { async first() { return null; } }; } };
+            }
+            if (/INSERT INTO steam_profile_cache/.test(sql)) {
+                return {
+                    bind(...values) {
+                        storedValues = values;
+                        return { async run() { return { meta: { changes: 1 } }; } };
+                    }
+                };
+            }
+            throw new Error(`未预期的 SQL: ${sql}`);
+        }
+    };
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+        const url = new URL(input);
+        if (url.pathname.includes('GetPlayerSummaries')) {
+            return Response.json({
+                response: {
+                    players: [{
+                        steamid: '76561199258285994',
+                        personaname: '测试玩家',
+                        avatarfull: 'https://example.com/avatar.jpg',
+                        profileurl: 'https://steamcommunity.com/profiles/76561199258285994/',
+                        personastate: 1
+                    }]
+                }
+            });
+        }
+        if (url.pathname.includes('GetOwnedGames')) {
+            return Response.json({
+                response: {
+                    game_count: 2,
+                    games: [
+                        { appid: 20, name: '短时游戏', playtime_forever: 60, img_icon_url: 'b' },
+                        { appid: 10, name: '长时游戏', playtime_forever: 600, img_icon_url: 'a' }
+                    ]
+                }
+            });
+        }
+        throw new Error(`未预期的请求: ${url}`);
+    };
+
+    try {
+        const response = await worker.fetch(
+            new Request('https://example.com/api/steam'),
+            { ...env, DB: database, STEAM_API_KEY: 'test-key' }
+        );
+        const data = await response.json();
+        assert.equal(response.status, 200);
+        assert.equal(data.source, 'live');
+        assert.equal(data.profile.totalPlaytimeMinutes, 660);
+        assert.equal(data.profile.games[0].name, '长时游戏');
+        assert.equal(storedValues[0], '76561199258285994');
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
+test('Steam 查询拒绝无效主页输入', async () => {
+    const response = await worker.fetch(new Request('https://example.com/api/steam/query', {
+        method: 'POST',
+        headers: { Origin: 'https://example.com', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile: 'https://attacker.example/player' })
+    }), {
+        ...env,
+        DB: { prepare() { throw new Error('无效输入不应访问数据库'); } }
+    });
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).message, '请输入 steamcommunity.com 的个人主页链接');
+});
+
+test('Steam 查询拒绝跨站请求', async () => {
+    const response = await worker.fetch(new Request('https://example.com/api/steam/query', {
+        method: 'POST',
+        headers: { Origin: 'https://attacker.example', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile: '76561199258285994' })
+    }), {
+        ...env,
+        DB: { prepare() { throw new Error('跨站请求不应访问数据库'); } }
+    });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json()).message, '请求来源无效');
+});
+
 test('内容接口按栏目读取 D1 记录', async () => {
     let receivedSection;
     let receivedSql;

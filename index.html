@@ -7,6 +7,7 @@
     <meta name="theme-color" content="#0d2236">
     <title>ZGJ Archive｜个人档案馆</title>
     <link rel="stylesheet" href="database-ui.css">
+    <link rel="stylesheet" href="steam-ui.css">
     <style>
         :root {
             --navy: #0c2033;
@@ -600,6 +601,53 @@
                 </div>
             </section>
 
+            <section class="steam-card card" id="steam" aria-labelledby="steamHeading">
+                <header class="steam-head">
+                    <div>
+                        <p class="steam-kicker">Steam Archive</p>
+                        <h2 class="steam-title" id="steamHeading">游戏时间档案</h2>
+                        <p class="steam-intro">站长的公开游戏记录，以及每位访客自己的 Steam 时长排行。</p>
+                    </div>
+                    <span class="steam-mark" aria-hidden="true">S</span>
+                </header>
+
+                <form class="steam-query-form" id="steamQueryForm">
+                    <label class="visually-hidden" for="steamQueryInput">Steam 主页链接、SteamID64 或自定义 ID</label>
+                    <input class="steam-query-input" id="steamQueryInput" name="profile" maxlength="256" autocomplete="off" placeholder="粘贴 Steam 主页链接，或输入 SteamID64 / 自定义 ID" required>
+                    <button class="steam-query-button" id="steamQueryButton" type="submit">查询 Steam</button>
+                </form>
+                <p class="steam-status" id="steamStatus" role="status" aria-live="polite"></p>
+
+                <div class="steam-result" id="steamResult" hidden>
+                    <div class="steam-profile-summary">
+                        <img class="steam-avatar" id="steamAvatar" alt="" width="92" height="92">
+                        <div class="steam-profile-copy">
+                            <a class="steam-profile-name" id="steamProfileName" href="#" target="_blank" rel="noopener noreferrer"></a>
+                            <p class="steam-presence"><span class="steam-presence-dot" id="steamPresenceDot" aria-hidden="true"></span><span id="steamPresence"></span></p>
+                        </div>
+                        <div class="steam-total">
+                            <strong id="steamTotalTime">0</strong>
+                            <span id="steamTotalLabel">累计游戏小时</span>
+                        </div>
+                    </div>
+
+                    <div class="steam-ranking">
+                        <header class="steam-ranking-head">
+                            <div>
+                                <h3 class="steam-ranking-title">累计时长排行</h3>
+                                <p class="steam-ranking-meta" id="steamRankingMeta"></p>
+                            </div>
+                            <label class="steam-zero-toggle"><input id="steamShowZero" type="checkbox">显示未游玩游戏</label>
+                        </header>
+                        <ol class="steam-game-list" id="steamGameList"></ol>
+                        <div class="steam-actions">
+                            <button class="steam-secondary-button" id="steamExpandButton" type="button" hidden>查看全部</button>
+                            <button class="steam-secondary-button" id="steamOwnerButton" type="button" hidden>返回站长数据</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             </div>
 
             <div class="page-view" id="view-admin" data-view="admin" hidden>
@@ -1001,5 +1049,6 @@
         })();
     </script>
     <script src="database-ui.js"></script>
+    <script src="steam-ui.js"></script>
 </body>
 </html>

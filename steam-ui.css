@@ -1,0 +1,363 @@
+.steam-card {
+    padding: 32px 38px 36px;
+    overflow: hidden;
+}
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+.steam-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 22px;
+}
+
+.steam-kicker {
+    margin: 0 0 7px;
+    color: #2f78e8;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.steam-title {
+    margin: 0;
+    color: #142238;
+    font-family: Georgia, "Noto Serif SC", "Songti SC", serif;
+    font-size: clamp(25px, 3vw, 34px);
+}
+
+.steam-intro {
+    max-width: 620px;
+    margin: 8px 0 0;
+    color: #687a90;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.steam-mark {
+    display: grid;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    place-items: center;
+    color: #edf6ff;
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    border-radius: 14px;
+    background: linear-gradient(145deg, #173f6b, #0d2238);
+    box-shadow: 0 9px 20px rgba(25, 65, 105, 0.2);
+    font-family: Georgia, serif;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.steam-query-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+}
+
+.steam-query-input {
+    width: 100%;
+    min-width: 0;
+    height: 46px;
+    padding: 0 15px;
+    color: #1c2d42;
+    border: 1px solid #c7d7e7;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.86);
+    font: inherit;
+    outline: none;
+    transition: 160ms ease;
+}
+
+.steam-query-input:focus {
+    border-color: #6da3ec;
+    box-shadow: 0 0 0 3px rgba(47, 120, 232, 0.12);
+}
+
+.steam-query-button,
+.steam-secondary-button {
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: 10px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 160ms ease;
+}
+
+.steam-query-button {
+    color: #fff;
+    border: 1px solid #2f78e8;
+    background: linear-gradient(135deg, #2f78e8, #2364c8);
+    box-shadow: 0 7px 16px rgba(47, 120, 232, 0.2);
+}
+
+.steam-query-button:hover,
+.steam-query-button:focus-visible {
+    background: linear-gradient(135deg, #3d86f2, #286bd2);
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.steam-query-button:disabled {
+    opacity: 0.62;
+    cursor: wait;
+    transform: none;
+}
+
+.steam-status {
+    min-height: 22px;
+    margin: 10px 2px 0;
+    color: #708197;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.steam-status.is-error { color: #b53a3a; }
+
+.steam-result {
+    display: grid;
+    gap: 24px;
+    margin-top: 22px;
+}
+
+.steam-profile-summary {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr) minmax(140px, auto);
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    border: 1px solid rgba(187, 204, 222, 0.76);
+    border-radius: 15px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.76), rgba(235, 244, 253, 0.7));
+}
+
+.steam-avatar {
+    display: block;
+    width: 92px;
+    height: 92px;
+    object-fit: cover;
+    border: 4px solid rgba(255, 255, 255, 0.84);
+    border-radius: 18px;
+    box-shadow: 0 8px 19px rgba(29, 61, 94, 0.16);
+}
+
+.steam-profile-copy { min-width: 0; }
+
+.steam-profile-name {
+    display: inline-block;
+    max-width: 100%;
+    color: #15263a;
+    font-family: Georgia, "Noto Serif SC", "Songti SC", serif;
+    font-size: clamp(23px, 3vw, 31px);
+    font-weight: 700;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+}
+
+.steam-profile-name:hover,
+.steam-profile-name:focus-visible { color: #2f78e8; outline: none; }
+
+.steam-presence {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 9px 0 0;
+    color: #63758a;
+    font-size: 14px;
+}
+
+.steam-presence-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #8a98a8;
+    box-shadow: 0 0 0 4px rgba(138, 152, 168, 0.12);
+}
+
+.steam-presence-dot.is-online {
+    background: #3b9dd8;
+    box-shadow: 0 0 0 4px rgba(59, 157, 216, 0.13);
+}
+
+.steam-total {
+    min-width: 150px;
+    padding-left: 22px;
+    border-left: 1px solid #cad8e5;
+    text-align: right;
+}
+
+.steam-total strong {
+    display: block;
+    color: #173a60;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(27px, 3.5vw, 39px);
+    line-height: 1;
+}
+
+.steam-total span {
+    display: block;
+    margin-top: 7px;
+    color: #718196;
+    font-size: 12px;
+}
+
+.steam-ranking-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 12px;
+}
+
+.steam-ranking-title {
+    margin: 0;
+    color: #1a2c41;
+    font-size: 18px;
+}
+
+.steam-ranking-meta {
+    margin: 4px 0 0;
+    color: #7b8b9d;
+    font-size: 12px;
+}
+
+.steam-zero-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #5d7086;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.steam-zero-toggle input { accent-color: #2f78e8; }
+
+.steam-game-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.steam-game-row {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: 34px 42px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 58px;
+    padding: 8px 14px 8px 10px;
+    overflow: hidden;
+    border: 1px solid rgba(194, 208, 223, 0.72);
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.64);
+}
+
+.steam-game-row::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    width: var(--steam-progress, 0%);
+    background: linear-gradient(90deg, rgba(77, 143, 224, 0.11), rgba(77, 143, 224, 0.025));
+}
+
+.steam-rank {
+    color: #8291a3;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    text-align: center;
+}
+
+.steam-game-icon {
+    display: block;
+    width: 42px;
+    height: 42px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: #dce7f1;
+    box-shadow: inset 0 0 0 1px rgba(31, 63, 95, 0.08);
+}
+
+.steam-game-name {
+    min-width: 0;
+    color: #283b51;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.steam-game-time {
+    color: #345d88;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.steam-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.steam-secondary-button {
+    color: #34506d;
+    border: 1px solid #c0d1e2;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.steam-secondary-button:hover,
+.steam-secondary-button:focus-visible {
+    color: #2f78e8;
+    border-color: #95b9e8;
+    background: #edf5ff;
+    outline: none;
+}
+
+.steam-empty {
+    padding: 28px 18px;
+    color: #718398;
+    border: 1px dashed #b9cadb;
+    border-radius: 12px;
+    text-align: center;
+}
+
+@media (max-width: 680px) {
+    .steam-card { padding: 26px 20px 28px; }
+    .steam-head { gap: 14px; }
+    .steam-mark { width: 40px; height: 40px; flex-basis: 40px; border-radius: 12px; font-size: 17px; }
+    .steam-query-form { grid-template-columns: 1fr; }
+    .steam-query-button { width: 100%; }
+    .steam-profile-summary { grid-template-columns: 68px minmax(0, 1fr); gap: 14px; padding: 16px; }
+    .steam-avatar { width: 68px; height: 68px; border-radius: 14px; }
+    .steam-total { grid-column: 1 / -1; padding: 14px 0 0; border-top: 1px solid #cad8e5; border-left: 0; text-align: left; }
+    .steam-total strong { display: inline; margin-right: 6px; font-size: 28px; }
+    .steam-total span { display: inline; }
+    .steam-ranking-head { align-items: flex-start; flex-direction: column; gap: 10px; }
+    .steam-game-row { grid-template-columns: 28px 38px minmax(0, 1fr); gap: 9px; padding-right: 10px; }
+    .steam-game-icon { width: 38px; height: 38px; }
+    .steam-game-time { grid-column: 3; }
+}

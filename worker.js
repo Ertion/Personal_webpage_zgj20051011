@@ -1,6 +1,10 @@
 const OWNER_USERNAME = 'zgj20051011';
 const SESSION_COOKIE = 'zgj_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
+const OWNER_STEAM_ID = '76561199258285994';
+const STEAM_CACHE_TTL_SECONDS = 30 * 60;
+const STEAM_QUERY_WINDOW_SECONDS = 10 * 60;
+const STEAM_QUERY_LIMIT = 12;
 const CONTENT_SECTIONS = new Set(['admin', 'blog', 'engineering', 'laboratory', 'chatgpt', 'more']);
 const CONTENT_STATUSES = new Set(['draft', 'published']);
 const EVENT_STATUSES = new Set(['planned', 'in_progress', 'completed']);
@@ -128,6 +132,277 @@ function validDate(value) {
 
 function databaseRequired(env) {
     return hasDatabase(env) ? null : json({ message: 'D1 数据库尚未绑定' }, 503);
+}
+
+function steamDatabaseError(error) {
+    const message = String(error?.message || error || '');
+    if (/no such table|steam_profile_cache|steam_query_limits/i.test(message)) {
+        return json({ message: 'Steam 数据库尚未初始化，请先应用最新 D1 迁移' }, 503);
+    }
+    console.error('Steam database error', error);
+    return json({ message: 'Steam 缓存暂时不可用，请稍后重试' }, 503);
+}
+
+function parseSteamLookup(value) {
+    const lookup = cleanString(value, 256);
+    if (!lookup) return { error: '请输入 Steam 主页链接、SteamID64 或自定义 ID' };
+    if (/^\d{17}$/.test(lookup)) return { steamId: lookup };
+
+    if (/^[A-Za-z0-9_-]{2,64}$/.test(lookup)) return { vanity: lookup };
+
+    let url;
+    try {
+        url = new URL(lookup.startsWith('http') ? lookup : `https://${lookup}`);
+    } catch (error) {
+        return { error: 'Steam 主页格式无效' };
+    }
+
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, '');
+    if (hostname !== 'steamcommunity.com') return { error: '请输入 steamcommunity.com 的个人主页链接' };
+    const parts = url.pathname.split('/').filter(Boolean);
+    if (parts[0] === 'profiles' && /^\d{17}$/.test(parts[1] || '')) return { steamId: parts[1] };
+    if (parts[0] === 'id' && /^[A-Za-z0-9_-]{2,64}$/.test(parts[1] || '')) return { vanity: parts[1] };
+    return { error: '无法从该链接识别 Steam 账号' };
+}
+
+async function steamApi(path, parameters, apiKey) {
+    if (!apiKey) throw Object.assign(new Error('Steam API Key 尚未配置'), { status: 503 });
+    const url = new URL(path, 'https://api.steampowered.com');
+    url.search = new URLSearchParams({ key: apiKey, format: 'json', ...parameters }).toString();
+    let response;
+    try {
+        response = await fetch(url, { headers: { Accept: 'application/json' } });
+    } catch (error) {
+        throw Object.assign(new Error('暂时无法连接 Steam，请稍后重试'), { status: 502 });
+    }
+    if (!response.ok) {
+        const message = response.status === 401 || response.status === 403
+            ? 'Steam API Key 无效或没有访问权限'
+            : 'Steam 暂时没有返回有效数据';
+        throw Object.assign(new Error(message), { status: 502 });
+    }
+    try {
+        return await response.json();
+    } catch (error) {
+        throw Object.assign(new Error('Steam 返回的数据格式无效'), { status: 502 });
+    }
+}
+
+async function resolveSteamId(lookup, apiKey) {
+    const parsed = parseSteamLookup(lookup);
+    if (parsed.error) throw Object.assign(new Error(parsed.error), { status: 400 });
+    if (parsed.steamId) return parsed.steamId;
+    const data = await steamApi('/ISteamUser/ResolveVanityURL/v1/', { vanityurl: parsed.vanity }, apiKey);
+    if (data?.response?.success !== 1 || !/^\d{17}$/.test(data.response.steamid || '')) {
+        throw Object.assign(new Error('没有找到这个 Steam 自定义 ID'), { status: 404 });
+    }
+    return data.response.steamid;
+}
+
+function steamStatusLabel(player) {
+    if (player?.gameextrainfo) return `游戏中 · ${player.gameextrainfo}`;
+    const labels = ['离线', '在线', '忙碌', '离开', '暂离', '愿意交易', '愿意游戏'];
+    return labels[Number(player?.personastate)] || '离线';
+}
+
+async function fetchSteamProfile(steamId, apiKey) {
+    const [summaryData, gamesData] = await Promise.all([
+        steamApi('/ISteamUser/GetPlayerSummaries/v0002/', { steamids: steamId }, apiKey),
+        steamApi('/IPlayerService/GetOwnedGames/v0001/', {
+            steamid: steamId,
+            include_appinfo: 'true',
+            include_played_free_games: 'true'
+        }, apiKey)
+    ]);
+    const player = summaryData?.response?.players?.[0];
+    if (!player) throw Object.assign(new Error('没有找到这个 Steam 账号'), { status: 404 });
+
+    const gamesResponse = gamesData?.response || {};
+    if (!Number.isFinite(gamesResponse.game_count) && !Array.isArray(gamesResponse.games)) {
+        throw Object.assign(new Error('该账号的“游戏详情”未公开，无法读取游戏时长'), { status: 403 });
+    }
+
+    const games = (Array.isArray(gamesResponse.games) ? gamesResponse.games : [])
+        .map((game) => {
+            const appId = Number(game.appid) || 0;
+            const iconHash = typeof game.img_icon_url === 'string' ? game.img_icon_url : '';
+            return {
+                appId,
+                name: cleanString(game.name, 240, `App ${appId}`),
+                playtimeMinutes: Math.max(0, Math.round(Number(game.playtime_forever) || 0)),
+                iconUrl: appId && iconHash
+                    ? `https://media.steampowered.com/steamcommunity/public/images/apps/${appId}/${iconHash}.jpg`
+                    : ''
+            };
+        })
+        .sort((left, right) => right.playtimeMinutes - left.playtimeMinutes || left.name.localeCompare(right.name, 'zh-CN'));
+
+    return {
+        steamId,
+        name: cleanString(player.personaname, 160, steamId),
+        avatarUrl: cleanString(player.avatarfull || player.avatarmedium, 600),
+        profileUrl: cleanString(player.profileurl, 600, `https://steamcommunity.com/profiles/${steamId}/`),
+        personaState: Number(player.personastate) || 0,
+        statusLabel: steamStatusLabel(player),
+        inGame: cleanString(player.gameextrainfo, 240),
+        gameCount: Number.isFinite(gamesResponse.game_count) ? gamesResponse.game_count : games.length,
+        playedGameCount: games.filter((game) => game.playtimeMinutes > 0).length,
+        totalPlaytimeMinutes: games.reduce((total, game) => total + game.playtimeMinutes, 0),
+        games
+    };
+}
+
+async function readSteamSnapshot(env, steamId) {
+    const row = await env.DB.prepare(`
+        SELECT steam_id, profile_name, avatar_url, profile_url, persona_state, status_label,
+               game_count, played_game_count, total_playtime_minutes, games_json, queried_at
+        FROM steam_profile_cache WHERE steam_id = ?
+    `).bind(steamId).first();
+    if (!row) return null;
+    let games;
+    try {
+        games = JSON.parse(row.games_json);
+    } catch (error) {
+        games = [];
+    }
+    return {
+        profile: {
+            steamId: row.steam_id,
+            name: row.profile_name,
+            avatarUrl: row.avatar_url,
+            profileUrl: row.profile_url,
+            personaState: Number(row.persona_state) || 0,
+            statusLabel: row.status_label,
+            inGame: String(row.status_label || '').startsWith('游戏中'),
+            gameCount: Number(row.game_count) || 0,
+            playedGameCount: Number(row.played_game_count) || 0,
+            totalPlaytimeMinutes: Number(row.total_playtime_minutes) || 0,
+            games: Array.isArray(games) ? games : []
+        },
+        queriedAt: row.queried_at
+    };
+}
+
+async function storeSteamSnapshot(env, profile) {
+    const queriedAt = new Date().toISOString();
+    await env.DB.prepare(`
+        INSERT INTO steam_profile_cache
+        (steam_id, profile_name, avatar_url, profile_url, persona_state, status_label,
+         game_count, played_game_count, total_playtime_minutes, games_json, queried_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(steam_id) DO UPDATE SET
+            profile_name = excluded.profile_name,
+            avatar_url = excluded.avatar_url,
+            profile_url = excluded.profile_url,
+            persona_state = excluded.persona_state,
+            status_label = excluded.status_label,
+            game_count = excluded.game_count,
+            played_game_count = excluded.played_game_count,
+            total_playtime_minutes = excluded.total_playtime_minutes,
+            games_json = excluded.games_json,
+            queried_at = excluded.queried_at
+    `).bind(
+        profile.steamId, profile.name, profile.avatarUrl, profile.profileUrl,
+        profile.personaState, profile.statusLabel, profile.gameCount, profile.playedGameCount,
+        profile.totalPlaytimeMinutes, JSON.stringify(profile.games), queriedAt
+    ).run();
+    return queriedAt;
+}
+
+function steamCacheIsFresh(snapshot) {
+    const queriedAt = new Date(snapshot?.queriedAt).getTime();
+    return Number.isFinite(queriedAt) && Date.now() - queriedAt < STEAM_CACHE_TTL_SECONDS * 1000;
+}
+
+async function enforceSteamRateLimit(request, env) {
+    const address = request.headers.get('CF-Connecting-IP')
+        || request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim()
+        || 'local';
+    const clientKey = bytesToBase64Url(await digest(`steam-query:${address}`)).slice(0, 32);
+    const now = new Date();
+    const existing = await env.DB.prepare(
+        'SELECT window_started_at, query_count FROM steam_query_limits WHERE client_key = ?'
+    ).bind(clientKey).first();
+    const windowStart = new Date(existing?.window_started_at).getTime();
+    const expired = !Number.isFinite(windowStart) || now.getTime() - windowStart >= STEAM_QUERY_WINDOW_SECONDS * 1000;
+
+    if (expired) {
+        await env.DB.prepare(`
+            INSERT INTO steam_query_limits (client_key, window_started_at, query_count)
+            VALUES (?, ?, 1)
+            ON CONFLICT(client_key) DO UPDATE SET window_started_at = excluded.window_started_at, query_count = 1
+        `).bind(clientKey, now.toISOString()).run();
+        return null;
+    }
+
+    if (Number(existing.query_count) >= STEAM_QUERY_LIMIT) {
+        const retryAfter = Math.max(1, Math.ceil((windowStart + STEAM_QUERY_WINDOW_SECONDS * 1000 - now.getTime()) / 1000));
+        return json({ message: '查询过于频繁，请稍后再试' }, 429, { 'Retry-After': String(retryAfter) });
+    }
+    await env.DB.prepare(
+        'UPDATE steam_query_limits SET query_count = query_count + 1 WHERE client_key = ?'
+    ).bind(clientKey).run();
+    return null;
+}
+
+function steamPayload(snapshot, source, warning = '') {
+    return {
+        ...snapshot,
+        source,
+        isOwner: snapshot.profile.steamId === OWNER_STEAM_ID,
+        ...(warning ? { warning } : {})
+    };
+}
+
+async function getOwnerSteamProfile(env) {
+    const missing = databaseRequired(env);
+    if (missing) return missing;
+    try {
+        const cached = await readSteamSnapshot(env, OWNER_STEAM_ID);
+        if (cached) return json(steamPayload(cached, 'cache'));
+        if (!env.STEAM_API_KEY) {
+            return json({ message: 'Steam API Key 尚未配置，暂时没有站长缓存数据' }, 503);
+        }
+        const profile = await fetchSteamProfile(OWNER_STEAM_ID, env.STEAM_API_KEY);
+        const queriedAt = await storeSteamSnapshot(env, profile);
+        return json(steamPayload({ profile, queriedAt }, 'live'));
+    } catch (error) {
+        if (/no such table|steam_profile_cache/i.test(String(error?.message || ''))) return steamDatabaseError(error);
+        return json({ message: error?.message || 'Steam 数据暂时不可用' }, error?.status || 502);
+    }
+}
+
+async function querySteamProfile(request, env) {
+    const missing = databaseRequired(env);
+    if (missing) return missing;
+    if (!isSameOrigin(request)) return json({ message: '请求来源无效' }, 403);
+    const body = await readJson(request);
+    const parsed = parseSteamLookup(body?.profile);
+    if (parsed.error) return json({ message: parsed.error }, 400);
+
+    try {
+        const limited = await enforceSteamRateLimit(request, env);
+        if (limited) return limited;
+        const steamId = parsed.steamId || await resolveSteamId(parsed.vanity, env.STEAM_API_KEY);
+        const cached = await readSteamSnapshot(env, steamId);
+        if (cached && steamCacheIsFresh(cached)) return json(steamPayload(cached, 'cache'));
+        if (!env.STEAM_API_KEY) {
+            if (cached) return json(steamPayload(cached, 'cache', 'Steam API 尚未配置，已展示旧缓存'));
+            return json({ message: 'Steam API Key 尚未配置' }, 503);
+        }
+
+        try {
+            const profile = await fetchSteamProfile(steamId, env.STEAM_API_KEY);
+            const queriedAt = await storeSteamSnapshot(env, profile);
+            return json(steamPayload({ profile, queriedAt }, 'live'));
+        } catch (error) {
+            if (cached) return json(steamPayload(cached, 'cache', 'Steam 暂时不可用，已展示旧缓存'));
+            throw error;
+        }
+    } catch (error) {
+        if (/no such table|steam_profile_cache|steam_query_limits/i.test(String(error?.message || ''))) return steamDatabaseError(error);
+        return json({ message: error?.message || 'Steam 查询失败，请稍后重试' }, error?.status || 502);
+    }
 }
 
 async function isOwner(request, env) {
@@ -393,6 +668,16 @@ export default {
             if (request.method === 'GET') return getAuth(request, env);
             if (request.method === 'POST') return postAuth(request, env);
             return methodNotAllowed();
+        }
+
+        if (/^\/api\/steam\/?$/.test(url.pathname)) {
+            if (request.method === 'GET') return getOwnerSteamProfile(env);
+            return methodNotAllowed('GET');
+        }
+
+        if (/^\/api\/steam\/query\/?$/.test(url.pathname)) {
+            if (request.method === 'POST') return querySteamProfile(request, env);
+            return methodNotAllowed('POST');
         }
 
         if (/^\/api\/content\/?$/.test(url.pathname)) {
