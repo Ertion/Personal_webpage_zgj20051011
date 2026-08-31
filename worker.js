@@ -423,13 +423,20 @@ async function getOwnerSteamProfile(env) {
     if (missing) return missing;
     try {
         const cached = await readSteamSnapshot(env, OWNER_STEAM_ID);
-        if (cached) return json(steamPayload(cached, 'cache'));
-        const profile = env.STEAM_API_KEY
-            ? await fetchSteamProfile(OWNER_STEAM_ID, env.STEAM_API_KEY)
-            : await fetchSteamPublicProfile({ steamId: OWNER_STEAM_ID });
-        const queriedAt = await storeSteamSnapshot(env, profile);
-        const warning = profile.isPartial ? '未配置 Steam API Key，仅展示公开资料中的代表游戏' : '';
-        return json(steamPayload({ profile, queriedAt }, 'live', warning));
+        if (cached && !(cached.profile.isPartial && env.STEAM_API_KEY)) {
+            return json(steamPayload(cached, 'cache'));
+        }
+        try {
+            const profile = env.STEAM_API_KEY
+                ? await fetchSteamProfile(OWNER_STEAM_ID, env.STEAM_API_KEY)
+                : await fetchSteamPublicProfile({ steamId: OWNER_STEAM_ID });
+            const queriedAt = await storeSteamSnapshot(env, profile);
+            const warning = profile.isPartial ? '未配置 Steam API Key，仅展示公开资料中的代表游戏' : '';
+            return json(steamPayload({ profile, queriedAt }, 'live', warning));
+        } catch (error) {
+            if (cached) return json(steamPayload(cached, 'cache', '完整游戏库刷新失败，已展示原缓存'));
+            throw error;
+        }
     } catch (error) {
         if (/no such table|steam_profile_cache/i.test(String(error?.message || ''))) return steamDatabaseError(error);
         return json({ message: error?.message || 'Steam 数据暂时不可用' }, error?.status || 502);
@@ -450,7 +457,9 @@ async function querySteamProfile(request, env) {
         let steamId = parsed.steamId || '';
         if (!steamId && env.STEAM_API_KEY) steamId = await resolveSteamId(parsed.vanity, env.STEAM_API_KEY);
         const cached = steamId ? await readSteamSnapshot(env, steamId) : null;
-        if (cached && steamCacheIsFresh(cached)) return json(steamPayload(cached, 'cache'));
+        if (cached && steamCacheIsFresh(cached) && !(cached.profile.isPartial && env.STEAM_API_KEY)) {
+            return json(steamPayload(cached, 'cache'));
+        }
         if (!env.STEAM_API_KEY) {
             if (cached && !cached.profile.isPartial) {
                 return json(steamPayload(cached, 'cache', '未配置 Steam API Key，已展示上一次完整缓存'));

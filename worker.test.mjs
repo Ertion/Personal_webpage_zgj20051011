@@ -214,6 +214,68 @@ test('没有 Steam API Key 时使用公开资料降级模式', async () => {
     }
 });
 
+test('配置 Steam API Key 后会把部分缓存升级为完整游戏库', async () => {
+    let stored = false;
+    const partialRow = {
+        steam_id: '76561199258285994',
+        profile_name: '部分缓存玩家',
+        avatar_url: 'https://example.com/avatar.jpg',
+        profile_url: 'https://steamcommunity.com/profiles/76561199258285994/',
+        persona_state: 1,
+        status_label: '在线',
+        game_count: 1,
+        played_game_count: 1,
+        total_playtime_minutes: 60,
+        games_json: '[]',
+        queried_at: new Date().toISOString(),
+        is_partial: 1
+    };
+    const database = {
+        prepare(sql) {
+            if (/FROM steam_profile_cache/.test(sql)) {
+                return { bind() { return { async first() { return partialRow; } }; } };
+            }
+            if (/INSERT INTO steam_profile_cache/.test(sql)) {
+                return { bind() { return { async run() { stored = true; return { meta: { changes: 1 } }; } }; } };
+            }
+            throw new Error(`未预期的 SQL: ${sql}`);
+        }
+    };
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+        const url = new URL(input);
+        if (url.pathname.includes('GetPlayerSummaries')) {
+            return Response.json({ response: { players: [{
+                steamid: '76561199258285994', personaname: '完整玩家',
+                avatarfull: 'https://example.com/avatar.jpg',
+                profileurl: 'https://steamcommunity.com/profiles/76561199258285994/', personastate: 1
+            }] } });
+        }
+        if (url.pathname.includes('GetOwnedGames')) {
+            return Response.json({ response: { game_count: 2, games: [
+                { appid: 10, name: '完整游戏一', playtime_forever: 600, img_icon_url: 'a' },
+                { appid: 20, name: '完整游戏二', playtime_forever: 300, img_icon_url: 'b' }
+            ] } });
+        }
+        throw new Error(`未预期的请求: ${url}`);
+    };
+
+    try {
+        const response = await worker.fetch(
+            new Request('https://example.com/api/steam'),
+            { ...env, DB: database, STEAM_API_KEY: 'test-key' }
+        );
+        const data = await response.json();
+        assert.equal(response.status, 200);
+        assert.equal(data.source, 'live');
+        assert.equal(data.profile.isPartial, false);
+        assert.equal(data.profile.gameCount, 2);
+        assert.equal(stored, true);
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
 test('Steam 查询拒绝无效主页输入', async () => {
     const response = await worker.fetch(new Request('https://example.com/api/steam/query', {
         method: 'POST',
