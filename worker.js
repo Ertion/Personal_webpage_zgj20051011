@@ -614,15 +614,11 @@ async function fetchEhHtmlWithBrowser(url, env) {
     }
 }
 
-async function fetchEhHtml(url, cacheTtl = 60, env) {
-    if (env?.BROWSER) {
-        const html = await fetchEhHtmlWithBrowser(url, env);
-        if (/temporarily banned due to an excessive request rate/i.test(html)) {
-            throw Object.assign(new Error('公开画廊浏览器出口暂时受限，请稍后重试'), { status: 503 });
-        }
-        if (html.length > 2_000_000) throw Object.assign(new Error('公开画廊返回内容过大'), { status: 502 });
-        return html;
-    }
+function ehHtmlIsBlocked(html) {
+    return /temporarily banned due to an excessive request rate|cf-chl-|just a moment\.\.\.|captcha|access denied/i.test(html);
+}
+
+async function fetchEhHtmlOverHttp(url, cacheTtl, env) {
     const locations = env?.EH_GATEWAY ? ['wnam', 'enam', 'weur'] : [''];
     for (const locationHint of locations) {
         let response;
@@ -642,6 +638,8 @@ async function fetchEhHtml(url, cacheTtl = 60, env) {
             throw Object.assign(new Error('暂时无法连接公开画廊，请稍后重试'), { status: 502 });
         }
         if (!response.ok) {
+            const retryable = [403, 429, 509].includes(response.status) || response.status >= 500;
+            if (retryable && locationHint && locationHint !== locations.at(-1)) continue;
             const message = response.status === 509
                 ? '公开画廊已触发临时流量限制，请稍后再试'
                 : '公开画廊暂时没有返回有效内容';
@@ -650,13 +648,31 @@ async function fetchEhHtml(url, cacheTtl = 60, env) {
         const length = Number(response.headers.get('Content-Length')) || 0;
         if (length > 2_000_000) throw Object.assign(new Error('公开画廊返回内容过大'), { status: 502 });
         const html = await response.text();
-        if (/temporarily banned due to an excessive request rate/i.test(html) && locationHint !== locations.at(-1)) continue;
-        if (/temporarily banned due to an excessive request rate/i.test(html)) {
+        if (ehHtmlIsBlocked(html) && locationHint !== locations.at(-1)) continue;
+        if (ehHtmlIsBlocked(html)) {
             throw Object.assign(new Error('公开画廊出口暂时受限，请稍后重试'), { status: 503 });
         }
         return html;
     }
     throw Object.assign(new Error('暂时无法连接公开画廊，请稍后重试'), { status: 502 });
+}
+
+async function fetchEhHtml(url, cacheTtl = 60, env) {
+    let httpError;
+    try {
+        return await fetchEhHtmlOverHttp(url, cacheTtl, env);
+    } catch (error) {
+        httpError = error;
+    }
+
+    if (!env?.BROWSER) throw httpError;
+
+    const html = await fetchEhHtmlWithBrowser(url, env);
+    if (ehHtmlIsBlocked(html)) {
+        throw Object.assign(new Error('公开画廊浏览器出口暂时受限，请稍后重试'), { status: 503 });
+    }
+    if (html.length > 2_000_000) throw Object.assign(new Error('公开画廊返回内容过大'), { status: 502 });
+    return html;
 }
 
 function parseEhList(html) {

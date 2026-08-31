@@ -71,6 +71,62 @@ test('EhViewer 无需登录即可读取公开画廊列表', async () => {
     }
 });
 
+test('EhViewer 绑定云端浏览器后仍优先使用普通 HTTP', async () => {
+    const originalFetch = globalThis.fetch;
+    let httpCalls = 0;
+    globalThis.fetch = async () => {
+        httpCalls += 1;
+        return new Response(`<!doctype html><div id="ig"><div><div><a href="https://e-hentai.org/lofi/s/a1b2c3d4e5/12345-1"><img src="https://ehgt.org/aa/test.webp" /></a></div><div><h2><a href="https://e-hentai.org/lofi/g/12345/f1e2d3c4b5/">普通请求成功</a></h2><p>2026-08-31 08:37 &nbsp; &nbsp; Manga &nbsp; &nbsp; 12p &nbsp; &nbsp; uploader</p></div></div></div>`);
+    };
+
+    try {
+        const response = await worker.fetch(
+            new Request('https://example.com/api/ehviewer'),
+            { ...env, BROWSER: { shouldNotBeUsed: true } }
+        );
+        const data = await response.json();
+        assert.equal(response.status, 200);
+        assert.equal(data.items[0].title, '普通请求成功');
+        assert.equal(httpCalls, 1);
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
+test('EhViewer 普通出口均被拦截时才启用云端浏览器', async () => {
+    const gatewayCalls = [];
+    const browserHtml = `<!doctype html><div id="ig"><div><div><a href="https://e-hentai.org/lofi/s/a1b2c3d4e5/12345-1"><img src="https://ehgt.org/aa/test.webp" /></a></div><div><h2><a href="https://e-hentai.org/lofi/g/12345/f1e2d3c4b5/">浏览器降级成功</a></h2><p>2026-08-31 08:37 &nbsp; &nbsp; Manga &nbsp; &nbsp; 12p &nbsp; &nbsp; uploader</p></div></div></div>`;
+    const gateway = {
+        getByName(name) {
+            return {
+                async fetch(request) {
+                    const pathname = new URL(request instanceof Request ? request.url : String(request)).pathname;
+                    gatewayCalls.push({ name, pathname });
+                    if (pathname === '/browser') return new Response(browserHtml);
+                    return new Response('<title>Just a moment...</title><div class="cf-chl-test">Blocked</div>');
+                }
+            };
+        }
+    };
+
+    const response = await worker.fetch(
+        new Request('https://example.com/api/ehviewer'),
+        { ...env, BROWSER: {}, EH_GATEWAY: gateway }
+    );
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.items[0].title, '浏览器降级成功');
+    assert.deepEqual(
+        gatewayCalls.map(({ name, pathname }) => `${name}:${pathname}`),
+        [
+            'public-wnam-v1:/fetch',
+            'public-enam-v1:/fetch',
+            'public-weur-v1:/fetch',
+            'browser-session-v1:/browser'
+        ]
+    );
+});
+
 test('EhViewer 画廊详情合并官方元数据与公开缩略图', async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async (input, options = {}) => {
