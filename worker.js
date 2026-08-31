@@ -530,7 +530,10 @@ async function fetchEhHtml(url, cacheTtl = 60) {
             redirect: 'follow',
             headers: {
                 Accept: 'text/html,application/xhtml+xml',
-                'User-Agent': 'ZGJ-Archive/1.0 (public gallery reader; no account cookies)'
+                'User-Agent': 'ZGJ-Archive/1.0 (public gallery reader; no account authentication)',
+                // E-Hentai uses this preference-only cookie to skip its adult-content
+                // warning page. It is not an account or login session cookie.
+                Cookie: 'nw=1'
             },
             cf: { cacheEverything: true, cacheTtl }
         });

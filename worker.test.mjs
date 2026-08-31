@@ -42,11 +42,13 @@ test('未知 API 不会退回首页', async () => {
 
 test('EhViewer 无需登录即可读取公开画廊列表', async () => {
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = async (input) => {
+    globalThis.fetch = async (input, options = {}) => {
         const url = new URL(input);
         assert.equal(url.origin, 'https://e-hentai.org');
         assert.equal(url.pathname, '/lofi/');
         assert.equal(url.searchParams.get('f_search'), '中文');
+        assert.equal(options.headers.Cookie, 'nw=1');
+        assert.doesNotMatch(options.headers.Cookie, /ipb_member_id|ipb_pass_hash/i);
         return new Response(`<!doctype html><div id="ig"><div><div><a href="https://e-hentai.org/lofi/s/a1b2c3d4e5/12345-1"><img src="https://ehgt.org/aa/test.webp" alt="Cover Image" /></a></div><div><h2><a href="https://e-hentai.org/lofi/g/12345/f1e2d3c4b5/">测试 &amp; 画廊</a></h2><p>2026-08-31 08:37 &nbsp; &nbsp; Manga &nbsp; &nbsp;  12p &nbsp; &nbsp; uploader</p><table class="tl"><tr><td>language:</td><td>chinese, translated</td></tr></table></div></div></div><div id="ia"><a href="https://e-hentai.org/lofi/?f_search=%E4%B8%AD%E6%96%87&amp;next=12344">Next Page &gt;</a></div>`, {
             headers: { 'Content-Type': 'text/html' }
         });
