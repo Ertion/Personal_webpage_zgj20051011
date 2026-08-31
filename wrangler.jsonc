@@ -12,11 +12,30 @@
   "observability": {
     "enabled": true
   },
+  "browser": {
+    "binding": "BROWSER"
+  },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "ZGJ-archive-db",
       "database_id": "c1cb9fce-2135-4397-afab-06d7ed498bec"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "EH_GATEWAY",
+        "class_name": "EhGateway"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "eh-gateway-v1",
+      "new_sqlite_classes": [
+        "EhGateway"
+      ]
     }
   ],
   "assets": {

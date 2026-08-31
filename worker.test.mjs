@@ -63,6 +63,8 @@ test('EhViewer 无需登录即可读取公开画廊列表', async () => {
         assert.equal(data.items[0].category, 'Manga');
         assert.equal(data.items[0].pages, 12);
         assert.deepEqual(data.items[0].tags, ['language:chinese', 'language:translated']);
+        assert.equal(new URL(data.items[0].thumbUrl).pathname, '/api/ehviewer/media');
+        assert.equal(new URL(data.items[0].thumbUrl).searchParams.get('url'), 'https://ehgt.org/aa/test.webp');
         assert.equal(data.nextCursor, '12344');
     } finally {
         globalThis.fetch = originalFetch;
@@ -120,9 +122,36 @@ test('EhViewer 图片接口只返回受信任图片源与相邻页', async () =>
         const response = await worker.fetch(new Request('https://example.com/api/ehviewer/image?gid=12345&token=a1b2c3d4e5&page=2'), env);
         const data = await response.json();
         assert.equal(response.status, 200);
-        assert.equal(data.imageUrl, 'https://image-node.hath.network/h/test/page.webp');
+        assert.equal(new URL(data.imageUrl).pathname, '/api/ehviewer/media');
+        assert.equal(new URL(data.imageUrl).searchParams.get('url'), 'https://image-node.hath.network/h/test/page.webp');
         assert.equal(data.previous.pageNumber, 1);
         assert.equal(data.next.pageToken, 'c3d4e5f6a7');
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
+test('EhViewer 图片代理只读取受信任图片域名', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input, options = {}) => {
+        assert.equal(String(input), 'https://ehgt.org/aa/test.webp');
+        assert.equal(options.redirect, 'manual');
+        assert.equal(options.headers.Referer, 'https://e-hentai.org/');
+        assert.equal(options.headers.Cookie, 'nw=1');
+        return new Response(new Uint8Array([0x52, 0x49, 0x46, 0x46]), {
+            headers: { 'Content-Type': 'image/webp', 'Content-Length': '4' }
+        });
+    };
+
+    try {
+        const safeUrl = encodeURIComponent('https://ehgt.org/aa/test.webp');
+        const response = await worker.fetch(new Request(`https://example.com/api/ehviewer/media?url=${safeUrl}`), env);
+        assert.equal(response.status, 200);
+        assert.equal(response.headers.get('Content-Type'), 'image/webp');
+        assert.equal((await response.arrayBuffer()).byteLength, 4);
+
+        const rejected = await worker.fetch(new Request('https://example.com/api/ehviewer/media?url=https%3A%2F%2Fevil.example%2Fimage.webp'), env);
+        assert.equal(rejected.status, 400);
     } finally {
         globalThis.fetch = originalFetch;
     }

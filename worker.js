@@ -1,3 +1,5 @@
+import puppeteer from '@cloudflare/puppeteer';
+
 const OWNER_USERNAME = 'zgj20051011';
 const SESSION_COOKIE = 'zgj_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
@@ -8,6 +10,8 @@ const STEAM_QUERY_LIMIT = 12;
 const EH_LOFI_ORIGIN = 'https://e-hentai.org';
 const EH_API_URL = 'https://api.e-hentai.org/api.php';
 const EH_GALLERY_PAGE_SIZE = 20;
+const EH_MEDIA_MAX_BYTES = 32 * 1024 * 1024;
+const EH_DEV_API_ORIGIN = 'https://zgj20051011.top';
 const EH_BLOCKED_TAGS = new Set(['female:lolicon', 'male:shotacon', 'female:underage', 'male:underage']);
 const CONTENT_SECTIONS = new Set(['admin', 'blog', 'engineering', 'laboratory', 'chatgpt', 'more']);
 const CONTENT_STATUSES = new Set(['draft', 'published']);
@@ -523,32 +527,136 @@ function ehGalleryIsAllowed(tags) {
     return !tags.some((tag) => EH_BLOCKED_TAGS.has(String(tag || '').trim().toLowerCase()));
 }
 
-async function fetchEhHtml(url, cacheTtl = 60) {
+function ehMediaProxyUrl(request, remoteUrl) {
+    if (!remoteUrl) return '';
+    const proxy = new URL('/api/ehviewer/media', request.url);
+    proxy.searchParams.set('url', remoteUrl);
+    return proxy.toString();
+}
+
+async function maybeProxyEhApi(request, env) {
+    if (env?.EHVIEWER_API_ORIGIN !== EH_DEV_API_ORIGIN) return null;
+    const source = new URL(request.url);
+    if (source.origin === EH_DEV_API_ORIGIN) return null;
+    const upstream = new URL(`${source.pathname}${source.search}`, EH_DEV_API_ORIGIN);
     let response;
     try {
-        response = await fetch(url, {
+        response = await fetch(upstream, {
             redirect: 'follow',
-            headers: {
-                Accept: 'text/html,application/xhtml+xml',
-                'User-Agent': 'ZGJ-Archive/1.0 (public gallery reader; no account authentication)',
-                // E-Hentai uses this preference-only cookie to skip its adult-content
-                // warning page. It is not an account or login session cookie.
-                Cookie: 'nw=1'
-            },
-            cf: { cacheEverything: true, cacheTtl }
+            headers: { Accept: request.headers.get('Accept') || 'application/json' }
         });
     } catch (error) {
-        throw Object.assign(new Error('暂时无法连接公开画廊，请稍后重试'), { status: 502 });
+        return json({ message: '暂时无法连接云端画廊接口，请稍后重试' }, 502);
     }
-    if (!response.ok) {
-        const message = response.status === 509
-            ? '公开画廊已触发临时流量限制，请稍后再试'
-            : '公开画廊暂时没有返回有效内容';
-        throw Object.assign(new Error(message), { status: response.status === 404 ? 404 : 502 });
+    const headers = new Headers();
+    for (const name of ['Content-Type', 'Content-Length', 'Cache-Control', 'ETag', 'Last-Modified']) {
+        const value = response.headers.get(name);
+        if (value) headers.set(name, value);
     }
-    const length = Number(response.headers.get('Content-Length')) || 0;
-    if (length > 2_000_000) throw Object.assign(new Error('公开画廊返回内容过大'), { status: 502 });
-    return response.text();
+    headers.set('X-Content-Type-Options', 'nosniff');
+    return new Response(response.body, { status: response.status, headers });
+}
+
+async function fetchEhUpstream(url, options, env, locationHint = 'wnam') {
+    if (!env?.EH_GATEWAY) return fetch(url, options);
+    const gatewayUrl = new URL('/fetch', 'https://eh-gateway.internal');
+    gatewayUrl.searchParams.set('url', String(url));
+    const headers = new Headers(options?.headers || {});
+    headers.set('X-Eh-Redirect-Mode', options?.redirect === 'manual' ? 'manual' : 'follow');
+    headers.set('X-Eh-Cache-Ttl', String(Math.max(0, Number(options?.cf?.cacheTtl) || 0)));
+    const stub = env.EH_GATEWAY.getByName(`public-${locationHint}-v1`, { locationHint });
+    return stub.fetch(gatewayUrl, {
+        method: options?.method || 'GET',
+        headers,
+        body: options?.body
+    });
+}
+
+async function renderEhHtmlPage(browser, url) {
+    let page;
+    try {
+        page = await browser.newPage();
+        await page.setCookie({
+            name: 'nw',
+            value: '1',
+            domain: '.e-hentai.org',
+            path: '/',
+            secure: true
+        });
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/136 Safari/537.36');
+        await page.goto(String(url), { waitUntil: 'domcontentloaded', timeout: 30_000 });
+        return await page.content();
+    } finally {
+        if (page) await page.close().catch(() => {});
+    }
+}
+
+async function fetchEhHtmlWithBrowser(url, env) {
+    try {
+        if (env?.EH_GATEWAY) {
+            const gatewayUrl = new URL('/browser', 'https://eh-gateway.internal');
+            gatewayUrl.searchParams.set('url', String(url));
+            const stub = env.EH_GATEWAY.getByName('browser-session-v1');
+            const response = await stub.fetch(gatewayUrl);
+            const body = await response.text();
+            if (!response.ok) throw new Error(body || 'browser gateway failed');
+            return body;
+        }
+
+        const browser = await puppeteer.launch(env.BROWSER);
+        try {
+            return await renderEhHtmlPage(browser, url);
+        } finally {
+            await browser.close().catch(() => {});
+        }
+    } catch (error) {
+        throw Object.assign(new Error('云端浏览器暂时无法读取公开画廊'), { status: 502 });
+    }
+}
+
+async function fetchEhHtml(url, cacheTtl = 60, env) {
+    if (env?.BROWSER) {
+        const html = await fetchEhHtmlWithBrowser(url, env);
+        if (/temporarily banned due to an excessive request rate/i.test(html)) {
+            throw Object.assign(new Error('公开画廊浏览器出口暂时受限，请稍后重试'), { status: 503 });
+        }
+        if (html.length > 2_000_000) throw Object.assign(new Error('公开画廊返回内容过大'), { status: 502 });
+        return html;
+    }
+    const locations = env?.EH_GATEWAY ? ['wnam', 'enam', 'weur'] : [''];
+    for (const locationHint of locations) {
+        let response;
+        try {
+            response = await fetchEhUpstream(url, {
+                redirect: 'follow',
+                headers: {
+                    Accept: 'text/html,application/xhtml+xml',
+                    'User-Agent': 'ZGJ-Archive/1.0 (public gallery reader; no account authentication)',
+                    // Preference-only cookie: no account id, password hash, or login session.
+                    Cookie: 'nw=1'
+                },
+                cf: { cacheEverything: true, cacheTtl }
+            }, env, locationHint || 'wnam');
+        } catch (error) {
+            if (locationHint && locationHint !== locations.at(-1)) continue;
+            throw Object.assign(new Error('暂时无法连接公开画廊，请稍后重试'), { status: 502 });
+        }
+        if (!response.ok) {
+            const message = response.status === 509
+                ? '公开画廊已触发临时流量限制，请稍后再试'
+                : '公开画廊暂时没有返回有效内容';
+            throw Object.assign(new Error(message), { status: response.status === 404 ? 404 : 502 });
+        }
+        const length = Number(response.headers.get('Content-Length')) || 0;
+        if (length > 2_000_000) throw Object.assign(new Error('公开画廊返回内容过大'), { status: 502 });
+        const html = await response.text();
+        if (/temporarily banned due to an excessive request rate/i.test(html) && locationHint !== locations.at(-1)) continue;
+        if (/temporarily banned due to an excessive request rate/i.test(html)) {
+            throw Object.assign(new Error('公开画廊出口暂时受限，请稍后重试'), { status: 503 });
+        }
+        return html;
+    }
+    throw Object.assign(new Error('暂时无法连接公开画廊，请稍后重试'), { status: 502 });
 }
 
 function parseEhList(html) {
@@ -602,10 +710,10 @@ function parseEhPreviews(html) {
     return previews;
 }
 
-async function fetchEhMetadata(gid, token) {
+async function fetchEhMetadata(gid, token, env) {
     let response;
     try {
-        response = await fetch(EH_API_URL, {
+        response = await fetchEhUpstream(EH_API_URL, {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
@@ -613,7 +721,7 @@ async function fetchEhMetadata(gid, token) {
                 'User-Agent': 'ZGJ-Archive/1.0 (public gallery reader; no account cookies)'
             },
             body: JSON.stringify({ method: 'gdata', gidlist: [[Number(gid), token]], namespace: 1 })
-        });
+        }, env);
     } catch (error) {
         throw Object.assign(new Error('暂时无法读取画廊资料，请稍后重试'), { status: 502 });
     }
@@ -639,7 +747,7 @@ function validEhToken(value) {
     return /^[a-f0-9]{10}$/i.test(value || '');
 }
 
-async function listEhGalleries(request) {
+async function listEhGalleries(request, env) {
     const requestUrl = new URL(request.url);
     const search = cleanString(requestUrl.searchParams.get('search'), 120);
     const next = cleanString(requestUrl.searchParams.get('next'), 12);
@@ -649,13 +757,16 @@ async function listEhGalleries(request) {
     if (search) upstream.searchParams.set('f_search', search);
     if (next) upstream.searchParams.set('next', next);
     try {
-        const html = await fetchEhHtml(upstream, 60);
+        const html = await fetchEhHtml(upstream, 60, env);
         const parsed = parseEhList(html);
         if (!parsed.items.length && !/No hits found/i.test(html)) {
             throw Object.assign(new Error('公开画廊页面结构暂时无法识别'), { status: 502 });
         }
         return json({
-            items: parsed.items,
+            items: parsed.items.map((item) => ({
+                ...item,
+                thumbUrl: ehMediaProxyUrl(request, item.thumbUrl)
+            })),
             nextCursor: parsed.nextCursor,
             search,
             fetchedAt: new Date().toISOString()
@@ -665,7 +776,7 @@ async function listEhGalleries(request) {
     }
 }
 
-async function getEhGallery(request) {
+async function getEhGallery(request, env) {
     const requestUrl = new URL(request.url);
     const gid = cleanString(requestUrl.searchParams.get('gid'), 10);
     const token = cleanString(requestUrl.searchParams.get('token'), 10).toLowerCase();
@@ -684,15 +795,22 @@ async function getEhGallery(request) {
             const fileCount = Number(knownCountValue);
             const batchCount = Math.max(1, Math.ceil(fileCount / EH_GALLERY_PAGE_SIZE));
             if (batch >= batchCount) return json({ message: '画廊分页超出范围' }, 404);
-            const html = await fetchEhHtml(new URL(galleryPath, EH_LOFI_ORIGIN), 300);
+            const html = await fetchEhHtml(new URL(galleryPath, EH_LOFI_ORIGIN), 300, env);
             const previews = parseEhPreviews(html);
             if (!previews.length) throw Object.assign(new Error('该组暂时没有可读取的公开图片'), { status: 404 });
-            return json({ previews, batch, batchCount }, 200, { 'Cache-Control': 'private, max-age=120' });
+            return json({
+                previews: previews.map((preview) => ({
+                    ...preview,
+                    thumbUrl: ehMediaProxyUrl(request, preview.thumbUrl)
+                })),
+                batch,
+                batchCount
+            }, 200, { 'Cache-Control': 'private, max-age=120' });
         }
 
         const [metadata, html] = await Promise.all([
-            fetchEhMetadata(gid, token),
-            fetchEhHtml(new URL(galleryPath, EH_LOFI_ORIGIN), 300)
+            fetchEhMetadata(gid, token, env),
+            fetchEhHtml(new URL(galleryPath, EH_LOFI_ORIGIN), 300, env)
         ]);
         const metadataTags = Array.isArray(metadata.tags)
             ? metadata.tags.map((tag) => cleanString(decodeHtml(tag), 180)).filter(Boolean)
@@ -705,6 +823,10 @@ async function getEhGallery(request) {
         const fileCount = Math.max(0, Number(metadata.filecount) || 0);
         const batchCount = Math.max(1, Math.ceil(fileCount / EH_GALLERY_PAGE_SIZE));
         if (batch >= batchCount) return json({ message: '画廊分页超出范围' }, 404);
+        const proxiedPreviews = previews.map((preview) => ({
+            ...preview,
+            thumbUrl: ehMediaProxyUrl(request, preview.thumbUrl)
+        }));
         return json({
             gallery: {
                 gid,
@@ -712,7 +834,7 @@ async function getEhGallery(request) {
                 title: cleanString(decodeHtml(metadata.title), 500, `Gallery ${gid}`),
                 japaneseTitle: cleanString(decodeHtml(metadata.title_jpn), 500),
                 category: cleanString(metadata.category, 60),
-                thumbUrl: safeEhImageUrl(metadata.thumb),
+                thumbUrl: ehMediaProxyUrl(request, safeEhImageUrl(metadata.thumb)),
                 uploader: cleanString(metadata.uploader, 160),
                 postedAt: Number(metadata.posted) > 0 ? new Date(Number(metadata.posted) * 1000).toISOString() : '',
                 fileCount,
@@ -721,7 +843,7 @@ async function getEhGallery(request) {
                 tags: metadataTags,
                 externalUrl: `${EH_LOFI_ORIGIN}/g/${gid}/${token}/`
             },
-            previews,
+            previews: proxiedPreviews,
             batch,
             batchCount
         }, 200, { 'Cache-Control': 'private, max-age=120' });
@@ -730,7 +852,7 @@ async function getEhGallery(request) {
     }
 }
 
-async function getEhImage(request) {
+async function getEhImage(request, env) {
     const requestUrl = new URL(request.url);
     const gid = cleanString(requestUrl.searchParams.get('gid'), 10);
     const pageToken = cleanString(requestUrl.searchParams.get('token'), 10).toLowerCase();
@@ -742,7 +864,7 @@ async function getEhImage(request) {
     if (pageNumber < 1) return json({ message: '图片页参数无效' }, 400);
 
     try {
-        const html = await fetchEhHtml(new URL(`/lofi/s/${pageToken}/${gid}-${pageNumber}`, EH_LOFI_ORIGIN), 30);
+        const html = await fetchEhHtml(new URL(`/lofi/s/${pageToken}/${gid}-${pageNumber}`, EH_LOFI_ORIGIN), 30, env);
         const imageMatch = html.match(/<img id="sm" src="([^"]+)" alt="([^"]*)"/i);
         const imageUrl = safeEhImageUrl(imageMatch?.[1]);
         if (!imageUrl) throw Object.assign(new Error('该图片暂时无法读取'), { status: 404 });
@@ -754,7 +876,7 @@ async function getEhImage(request) {
         const previous = navigation.find((item) => item.pageNumber === pageNumber - 1) || null;
         const next = navigation.find((item) => item.pageNumber === pageNumber + 1) || null;
         return json({
-            imageUrl,
+            imageUrl: ehMediaProxyUrl(request, imageUrl),
             fileName: cleanString(decodeHtml(imageMatch?.[2]), 300, `page-${pageNumber}`),
             pageNumber,
             previous,
@@ -763,6 +885,53 @@ async function getEhImage(request) {
     } catch (error) {
         return json({ message: error?.message || '图片暂时不可用' }, error?.status || 502);
     }
+}
+
+async function getEhMedia(request, env) {
+    const requestUrl = new URL(request.url);
+    let imageUrl = safeEhImageUrl(cleanString(requestUrl.searchParams.get('url'), 2048));
+    if (!imageUrl) return json({ message: '图片来源无效' }, 400);
+
+    let response;
+    try {
+        for (let redirects = 0; redirects <= 3; redirects += 1) {
+            response = await fetchEhUpstream(imageUrl, {
+                redirect: 'manual',
+                headers: {
+                    Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+                    Referer: `${EH_LOFI_ORIGIN}/`,
+                    'User-Agent': 'ZGJ-Archive/1.0 (public gallery reader; no account authentication)',
+                    Cookie: 'nw=1'
+                },
+                cf: { cacheEverything: true, cacheTtl: 3600 }
+            }, env);
+            if (![301, 302, 303, 307, 308].includes(response.status)) break;
+            const location = response.headers.get('Location');
+            const redirected = location ? safeEhImageUrl(new URL(location, imageUrl).toString()) : '';
+            if (!redirected) return json({ message: '图片跳转地址无效' }, 502);
+            imageUrl = redirected;
+        }
+    } catch (error) {
+        return json({ message: '暂时无法读取图片' }, 502);
+    }
+
+    if (!response?.ok) return json({ message: '图片暂时不可用' }, response?.status === 404 ? 404 : 502);
+    const contentType = response.headers.get('Content-Type') || '';
+    const contentLength = Number(response.headers.get('Content-Length')) || 0;
+    if (!/^image\//i.test(contentType)) return json({ message: '上游返回的不是图片' }, 502);
+    if (contentLength > EH_MEDIA_MAX_BYTES) return json({ message: '图片文件过大' }, 413);
+
+    const headers = new Headers({
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=3600',
+        'X-Content-Type-Options': 'nosniff'
+    });
+    if (contentLength) headers.set('Content-Length', String(contentLength));
+    for (const name of ['ETag', 'Last-Modified']) {
+        const value = response.headers.get(name);
+        if (value) headers.set(name, value);
+    }
+    return new Response(response.body, { status: 200, headers });
 }
 
 async function isOwner(request, env) {
@@ -1020,6 +1189,85 @@ function methodNotAllowed(allow = 'GET, POST') {
     return json({ message: '请求方法不受支持' }, 405, { Allow: allow });
 }
 
+export class EhGateway {
+    constructor(ctx, env) {
+        this.ctx = ctx;
+        this.env = env;
+        this.browser = null;
+        this.browserQueue = Promise.resolve();
+    }
+
+    async browserHtml(target) {
+        if (!this.browser?.connected) {
+            const sessions = await puppeteer.sessions(this.env.BROWSER).catch(() => []);
+            const reusable = sessions.find((session) => !session.connectionId);
+            if (reusable) {
+                this.browser = await puppeteer.connect(this.env.BROWSER, reusable.sessionId).catch(() => null);
+            }
+            if (!this.browser) {
+                this.browser = await puppeteer.launch(this.env.BROWSER, {
+                    keep_alive: 60_000,
+                    guardrails: {
+                        allowedDomains: [
+                            'e-hentai.org', '*.e-hentai.org',
+                            'ehgt.org', '*.ehgt.org',
+                            'hath.network', '*.hath.network'
+                        ]
+                    }
+                });
+            }
+        }
+        return renderEhHtmlPage(this.browser, target);
+    }
+
+    async fetch(request) {
+        const requestUrl = new URL(request.url);
+        const targetValue = requestUrl.searchParams.get('url') || '';
+        let target;
+        try {
+            target = new URL(targetValue);
+        } catch (error) {
+            return json({ message: '上游地址无效' }, 400);
+        }
+        const galleryHost = target.hostname === 'e-hentai.org' && target.pathname.startsWith('/lofi/');
+        const metadataHost = target.href === EH_API_URL;
+        const imageHost = Boolean(safeEhImageUrl(target.href));
+        if (target.protocol !== 'https:' || (!galleryHost && !metadataHost && !imageHost)) {
+            return json({ message: '上游地址不受信任' }, 403);
+        }
+
+        if (requestUrl.pathname === '/browser') {
+            if (!galleryHost || !this.env?.BROWSER) return json({ message: '浏览器上游地址无效' }, 403);
+            const task = this.browserQueue.then(() => this.browserHtml(target));
+            this.browserQueue = task.catch(() => {});
+            try {
+                return new Response(await task, {
+                    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }
+                });
+            } catch (error) {
+                if (this.browser) await this.browser.disconnect().catch(() => {});
+                this.browser = null;
+                return new Response(cleanString(error?.message || error, 180, 'browser error'), { status: 502 });
+            }
+        }
+
+        const headers = new Headers();
+        for (const name of ['Accept', 'Content-Type', 'User-Agent', 'Cookie', 'Referer']) {
+            const value = request.headers.get(name);
+            if (value) headers.set(name, value);
+        }
+        const redirect = request.headers.get('X-Eh-Redirect-Mode') === 'manual' ? 'manual' : 'follow';
+        const cacheTtl = Math.min(3600, Math.max(0, Number(request.headers.get('X-Eh-Cache-Ttl')) || 0));
+        return fetch(target, {
+            method: request.method,
+            headers,
+            body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
+            redirect,
+            cf: cacheTtl ? { cacheEverything: true, cacheTtl } : undefined
+        });
+    }
+}
+
 export default {
     async fetch(request, env) {
         const url = new URL(request.url);
@@ -1041,17 +1289,22 @@ export default {
         }
 
         if (/^\/api\/ehviewer\/?$/.test(url.pathname)) {
-            if (request.method === 'GET') return listEhGalleries(request);
+            if (request.method === 'GET') return await maybeProxyEhApi(request, env) || listEhGalleries(request, env);
             return methodNotAllowed('GET');
         }
 
         if (/^\/api\/ehviewer\/gallery\/?$/.test(url.pathname)) {
-            if (request.method === 'GET') return getEhGallery(request);
+            if (request.method === 'GET') return await maybeProxyEhApi(request, env) || getEhGallery(request, env);
             return methodNotAllowed('GET');
         }
 
         if (/^\/api\/ehviewer\/image\/?$/.test(url.pathname)) {
-            if (request.method === 'GET') return getEhImage(request);
+            if (request.method === 'GET') return await maybeProxyEhApi(request, env) || getEhImage(request, env);
+            return methodNotAllowed('GET');
+        }
+
+        if (/^\/api\/ehviewer\/media\/?$/.test(url.pathname)) {
+            if (request.method === 'GET') return await maybeProxyEhApi(request, env) || getEhMedia(request, env);
             return methodNotAllowed('GET');
         }
 

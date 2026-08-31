@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "wrangler dev --local --var EHVIEWER_API_ORIGIN:https://zgj20051011.top",
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply ZGJ-archive-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply ZGJ-archive-db --remote",
@@ -10,5 +11,8 @@
   },
   "devDependencies": {
     "wrangler": "4.127.0"
+  },
+  "dependencies": {
+    "@cloudflare/puppeteer": "1.4.0"
   }
 }
