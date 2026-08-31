@@ -1,16 +1,16 @@
 # Cloudflare 登录配置
 
-登录与 Steam 查询都不会把密码或 API Key 写入 HTML 或 GitHub。部署前请在 Cloudflare Dashboard 中配置三个加密 Secret。
+登录与 Steam 查询都不会把密码或 API Key 写入 HTML 或 GitHub。部署前需要配置两个登录 Secret；Steam API Key 为可选增强项。
 
 1. 打开 **Workers & Pages**，进入当前 `personal-webpage-zgj20051011` 项目。
 2. 打开 Worker 的 **Settings → Variables and Secrets**。不要添加到 **Settings → Build → Build Variables and Secrets**；构建变量不会在网页运行时提供给 Worker。
 3. 在 Production 环境添加并加密以下变量：
    - `ADMIN_PASSWORD`：所有者登录密码。
    - `SESSION_SECRET`：至少 32 个随机字符，专门用于签名登录会话，不要与登录密码相同。
-   - `STEAM_API_KEY`：从 Steam Web API Key 页面获取，仅供 Worker 服务端查询公开游戏资料。
+   - `STEAM_API_KEY`（可选）：配置后可查询完整公开游戏库；未配置时仅展示 Steam 公开资料中的代表游戏。
 4. 保存变量后重新部署项目。当前项目通过 Worker 的 `/api/auth` 路由处理登录。
 
-`wrangler.jsonc` 已声明这三个 Secret 为部署必需项。任何一个缺失时，Wrangler 会终止部署并明确列出缺失名称。
+`wrangler.jsonc` 只将登录所需的两个 Secret 声明为部署必需项。Steam API Key 缺失不会阻止部署。
 
 用户名已经固定在服务端代码中。不要创建或提交 `.dev.vars`、`.env` 文件；这些文件已经加入 `.gitignore`。
 

@@ -6,8 +6,7 @@
     "secrets": {
       "required": [
         "ADMIN_PASSWORD",
-        "SESSION_SECRET",
-        "STEAM_API_KEY"
+        "SESSION_SECRET"
       ]
     },
   "observability": {

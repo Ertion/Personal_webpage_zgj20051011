@@ -158,6 +158,62 @@ test('首页首次加载会从 Steam 获取并缓存站长数据', async () => {
     }
 });
 
+test('没有 Steam API Key 时使用公开资料降级模式', async () => {
+    let storedValues;
+    const database = {
+        prepare(sql) {
+            if (/FROM steam_profile_cache/.test(sql)) {
+                return { bind() { return { async first() { return null; } }; } };
+            }
+            if (/INSERT INTO steam_profile_cache/.test(sql)) {
+                return {
+                    bind(...values) {
+                        storedValues = values;
+                        return { async run() { return { meta: { changes: 1 } }; } };
+                    }
+                };
+            }
+            throw new Error(`未预期的 SQL: ${sql}`);
+        }
+    };
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+        const url = new URL(input);
+        assert.equal(url.hostname, 'steamcommunity.com');
+        return new Response(`<?xml version="1.0" encoding="UTF-8"?>
+            <profile>
+                <steamID64>76561199258285994</steamID64>
+                <steamID><![CDATA[公开玩家]]></steamID>
+                <onlineState>online</onlineState>
+                <stateMessage><![CDATA[Online]]></stateMessage>
+                <avatarFull><![CDATA[https://example.com/avatar.jpg]]></avatarFull>
+                <mostPlayedGames><mostPlayedGame>
+                    <gameName><![CDATA[Example Game]]></gameName>
+                    <gameLink><![CDATA[https://steamcommunity.com/app/10]]></gameLink>
+                    <gameIcon><![CDATA[https://example.com/game.jpg]]></gameIcon>
+                    <hoursOnRecord>12.5</hoursOnRecord>
+                    <statsName><![CDATA[10]]></statsName>
+                </mostPlayedGame></mostPlayedGames>
+            </profile>`, { headers: { 'Content-Type': 'application/xml' } });
+    };
+
+    try {
+        const response = await worker.fetch(
+            new Request('https://example.com/api/steam'),
+            { ...env, DB: database }
+        );
+        const data = await response.json();
+        assert.equal(response.status, 200);
+        assert.equal(data.profile.isPartial, true);
+        assert.equal(data.profile.name, '公开玩家');
+        assert.equal(data.profile.games[0].playtimeMinutes, 750);
+        assert.match(data.warning, /仅展示公开资料/);
+        assert.equal(storedValues.at(-1), 1);
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
 test('Steam 查询拒绝无效主页输入', async () => {
     const response = await worker.fetch(new Request('https://example.com/api/steam/query', {
         method: 'POST',

@@ -13,6 +13,7 @@
     const totalTime = document.getElementById('steamTotalTime');
     const totalLabel = document.getElementById('steamTotalLabel');
     const rankingMeta = document.getElementById('steamRankingMeta');
+    const rankingTitle = document.getElementById('steamRankingTitle');
     const gameList = document.getElementById('steamGameList');
     const showZero = document.getElementById('steamShowZero');
     const expandButton = document.getElementById('steamExpandButton');
@@ -92,7 +93,9 @@
             });
         }
 
-        rankingMeta.textContent = `${currentData.profile.playedGameCount} 款有游玩记录 · 共 ${currentData.profile.gameCount} 款游戏`;
+        rankingMeta.textContent = currentData.profile.isPartial
+            ? `Steam 公开资料提供了 ${currentData.profile.gameCount} 款代表游戏`
+            : `${currentData.profile.playedGameCount} 款有游玩记录 · 共 ${currentData.profile.gameCount} 款游戏`;
         expandButton.hidden = games.length <= INITIAL_GAME_LIMIT;
         expandButton.textContent = expanded ? '收起排行' : `查看全部 ${games.length} 款`;
     }
@@ -113,7 +116,11 @@
         totalTime.textContent = totalMinutes >= 60
             ? (totalHours < 100 ? totalHours.toFixed(1) : Math.round(totalHours).toLocaleString('zh-CN'))
             : totalMinutes.toLocaleString('zh-CN');
-        totalLabel.textContent = totalMinutes >= 60 ? '累计游戏小时' : '累计游戏分钟';
+        totalLabel.textContent = profile.isPartial
+            ? (totalMinutes >= 60 ? '公开资料中的小时' : '公开资料中的分钟')
+            : (totalMinutes >= 60 ? '累计游戏小时' : '累计游戏分钟');
+        rankingTitle.textContent = profile.isPartial ? '公开资料中的游戏' : '累计时长排行';
+        showZero.closest('label').hidden = Boolean(profile.isPartial);
         ownerButton.hidden = profile.steamId === OWNER_STEAM_ID;
         showZero.checked = false;
         renderGames();
