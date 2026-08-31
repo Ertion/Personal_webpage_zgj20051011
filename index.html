@@ -281,27 +281,6 @@
             font-size: clamp(29px, 3vw, 42px);
         }
         .content-lead { margin: 12px 0 28px; color: #607086; line-height: 1.8; }
-        .file-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
-        .file-link {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 18px;
-            padding: 18px 20px;
-            color: #233a56;
-            border: 1px solid #d5e2ef;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.65);
-            text-decoration: none;
-            transition: 160ms ease;
-        }
-        .file-link::after { content: "打开 ↗"; flex: 0 0 auto; color: var(--blue); font-size: 13px; }
-        .file-link:hover, .file-link:focus-visible {
-            border-color: #9fc2f4;
-            background: var(--blue-soft);
-            transform: translateY(-1px);
-            outline: none;
-        }
         .empty-note {
             padding: 28px;
             color: #718198;
@@ -703,10 +682,7 @@
                 <section class="content-card card" aria-labelledby="chatgptHeading">
                     <p class="content-kicker">Interaction</p>
                     <h2 class="content-title" id="chatgptHeading">ChatGPT</h2>
-                    <p class="content-lead">交互记录与留言归档。</p>
-                    <ul class="file-list">
-                        <li><a class="file-link" href="jiaohu_liuyan.txt" target="_blank" rel="noopener">留言</a></li>
-                    </ul>
+                    <p class="content-lead">交互记录归档。</p>
                     <div class="database-toolbar">
                         <button class="database-primary" type="button" data-content-create="chatgpt" data-owner-only hidden>新增交互记录</button>
                         <span class="database-status" data-content-status="chatgpt" aria-live="polite"></span>
@@ -720,9 +696,6 @@
                     <p class="content-kicker">More</p>
                     <h2 class="content-title" id="moreHeading">更多</h2>
                     <p class="content-lead">其他资料、兴趣方向与待扩展内容。</p>
-                    <div class="tags" aria-label="兴趣方向">
-                        <span class="tag">▣ Embedded</span><span class="tag">⌁ Drone</span><span class="tag">↔ ESC</span><span class="tag">□ Projects</span>
-                    </div>
                     <div class="database-toolbar">
                         <button class="database-primary" type="button" data-content-create="more" data-owner-only hidden>新增其他内容</button>
                         <span class="database-status" data-content-status="more" aria-live="polite"></span>

@@ -58,9 +58,20 @@
 .database-item h3 { margin: 0; color: #18283b; font-size: 19px; }
 .database-item-summary { margin: 8px 0 0; color: #5e7086; line-height: 1.7; }
 .database-item-body { margin: 14px 0 0; color: #2f4055; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.database-item-body-collapse {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 220ms ease, opacity 180ms ease;
+}
+.database-item-body-collapse.is-open { grid-template-rows: 1fr; opacity: 1; }
+.database-item-body-inner { min-height: 0; overflow: hidden; }
 .database-item-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; color: #7a899b; font-size: 12px; }
 .database-badge { padding: 4px 8px; color: #3267a7; border-radius: 999px; background: #eaf3ff; }
 .database-item-actions { display: flex; flex: 0 0 auto; gap: 8px; }
+.database-body-toggle { display: inline-flex; align-items: center; gap: 7px; color: #2166cc; }
+.database-body-toggle-icon { font-size: 17px; line-height: 1; transition: transform 220ms ease; }
+.database-body-toggle[aria-expanded="true"] .database-body-toggle-icon { transform: rotate(180deg); }
 
 .event-card { padding: 26px 30px 30px; }
 .event-card-head { align-items: flex-end; margin-bottom: 12px; }

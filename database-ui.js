@@ -7,6 +7,7 @@
         chatgpt: '交互记录',
         more: '其他内容'
     };
+    const collapsibleContentSections = new Set(['admin', 'blog', 'engineering', 'laboratory']);
     const contentState = new Map();
     let calendarEvents = [];
 
@@ -71,7 +72,7 @@
             return;
         }
 
-        items.forEach((item) => {
+        items.forEach((item, index) => {
             const article = document.createElement('article');
             article.className = 'database-item';
             const head = document.createElement('div');
@@ -88,17 +89,57 @@
             }
             const actions = document.createElement('div');
             actions.className = 'database-item-actions';
+            const hasCollapsibleBody = collapsibleContentSections.has(section) && Boolean(item.body);
+            let bodyPanel = null;
+            let bodyToggle = null;
+
+            if (hasCollapsibleBody) {
+                const bodyId = `content-body-${section}-${index}`;
+                bodyToggle = document.createElement('button');
+                bodyToggle.type = 'button';
+                bodyToggle.className = 'database-item-button database-body-toggle';
+                bodyToggle.setAttribute('aria-controls', bodyId);
+                bodyToggle.setAttribute('aria-expanded', 'false');
+
+                const toggleLabel = document.createElement('span');
+                toggleLabel.textContent = '展开正文';
+                const toggleIcon = document.createElement('span');
+                toggleIcon.className = 'database-body-toggle-icon';
+                toggleIcon.setAttribute('aria-hidden', 'true');
+                toggleIcon.textContent = '⌄';
+                bodyToggle.append(toggleLabel, toggleIcon);
+
+                bodyPanel = document.createElement('div');
+                bodyPanel.id = bodyId;
+                bodyPanel.className = 'database-item-body-collapse';
+                const bodyInner = document.createElement('div');
+                bodyInner.className = 'database-item-body-inner';
+                const body = document.createElement('p');
+                body.className = 'database-item-body';
+                body.textContent = item.body;
+                bodyInner.appendChild(body);
+                bodyPanel.appendChild(bodyInner);
+
+                bodyToggle.addEventListener('click', () => {
+                    const expanded = bodyToggle.getAttribute('aria-expanded') === 'true';
+                    bodyToggle.setAttribute('aria-expanded', String(!expanded));
+                    toggleLabel.textContent = expanded ? '展开正文' : '收起正文';
+                    bodyPanel.classList.toggle('is-open', !expanded);
+                });
+                actions.appendChild(bodyToggle);
+            }
             if (isOwner()) {
                 actions.append(
                     makeButton('编辑', 'database-item-button', () => openContentDialog(section, item)),
                     makeButton('删除', 'database-item-button is-danger', () => removeContent(section, item))
                 );
-                head.append(headingWrap, actions);
-            } else {
-                head.appendChild(headingWrap);
             }
+            head.appendChild(headingWrap);
+            if (actions.childElementCount) head.appendChild(actions);
             article.appendChild(head);
-            if (item.body) {
+            if (bodyPanel) {
+                article.appendChild(bodyPanel);
+            } else if (item.body) {
                 const body = document.createElement('p');
                 body.className = 'database-item-body';
                 body.textContent = item.body;
@@ -111,7 +152,11 @@
             const time = document.createElement('span');
             time.textContent = `更新于 ${formatTimestamp(item.updated_at)}`;
             meta.appendChild(time);
-            article.appendChild(meta);
+            if (bodyPanel) {
+                bodyPanel.firstElementChild.appendChild(meta);
+            } else {
+                article.appendChild(meta);
+            }
             container.appendChild(article);
         });
     }
