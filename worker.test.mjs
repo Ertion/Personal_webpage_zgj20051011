@@ -40,6 +40,124 @@ test('未知 API 不会退回首页', async () => {
     assert.equal(response.status, 404);
 });
 
+test('EhViewer 无需登录即可读取公开画廊列表', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+        const url = new URL(input);
+        assert.equal(url.origin, 'https://e-hentai.org');
+        assert.equal(url.pathname, '/lofi/');
+        assert.equal(url.searchParams.get('f_search'), '中文');
+        return new Response(`<!doctype html><div id="ig"><div><div><a href="https://e-hentai.org/lofi/s/a1b2c3d4e5/12345-1"><img src="https://ehgt.org/aa/test.webp" alt="Cover Image" /></a></div><div><h2><a href="https://e-hentai.org/lofi/g/12345/f1e2d3c4b5/">测试 &amp; 画廊</a></h2><p>2026-08-31 08:37 &nbsp; &nbsp; Manga &nbsp; &nbsp;  12p &nbsp; &nbsp; uploader</p><table class="tl"><tr><td>language:</td><td>chinese, translated</td></tr></table></div></div></div><div id="ia"><a href="https://e-hentai.org/lofi/?f_search=%E4%B8%AD%E6%96%87&amp;next=12344">Next Page &gt;</a></div>`, {
+            headers: { 'Content-Type': 'text/html' }
+        });
+    };
+
+    try {
+        const response = await worker.fetch(new Request('https://example.com/api/ehviewer?search=%E4%B8%AD%E6%96%87'), env);
+        const data = await response.json();
+        assert.equal(response.status, 200);
+        assert.equal(data.items.length, 1);
+        assert.equal(data.items[0].title, '测试 & 画廊');
+        assert.equal(data.items[0].category, 'Manga');
+        assert.equal(data.items[0].pages, 12);
+        assert.deepEqual(data.items[0].tags, ['language:chinese', 'language:translated']);
+        assert.equal(data.nextCursor, '12344');
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
+test('EhViewer 画廊详情合并官方元数据与公开缩略图', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input, options = {}) => {
+        const url = new URL(input);
+        if (url.hostname === 'api.e-hentai.org') {
+            assert.equal(options.method, 'POST');
+            return Response.json({ gmetadata: [{
+                gid: 12345,
+                token: 'f1e2d3c4b5',
+                title: '测试画廊',
+                title_jpn: 'テスト',
+                category: 'Manga',
+                thumb: 'https://ehgt.org/aa/cover.webp',
+                uploader: 'uploader',
+                posted: '1788163200',
+                filecount: '21',
+                filesize: 1048576,
+                rating: '4.50',
+                tags: ['language:chinese', 'artist:tester']
+            }] });
+        }
+        assert.equal(url.href, 'https://e-hentai.org/lofi/g/12345/f1e2d3c4b5/');
+        return new Response(`<div id="gh"><a href="https://e-hentai.org/lofi/s/a1b2c3d4e5/12345-1"><div title="Page 1" style="width:188px;height:300px;background:transparent url(https://ehgt.org/aa/page1.webp) 0 0 no-repeat"></div></a></div>`);
+    };
+
+    try {
+        const response = await worker.fetch(new Request('https://example.com/api/ehviewer/gallery?gid=12345&token=f1e2d3c4b5&batch=0'), env);
+        const data = await response.json();
+        assert.equal(response.status, 200);
+        assert.equal(data.gallery.title, '测试画廊');
+        assert.equal(data.gallery.fileCount, 21);
+        assert.equal(data.batchCount, 2);
+        assert.equal(data.previews[0].pageToken, 'a1b2c3d4e5');
+        assert.equal(data.previews[0].pageNumber, 1);
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
+test('EhViewer 图片接口只返回受信任图片源与相邻页', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+        const url = new URL(input);
+        assert.equal(url.href, 'https://e-hentai.org/lofi/s/a1b2c3d4e5/12345-2');
+        return new Response(`<div id="sd"><a href="https://e-hentai.org/lofi/s/c3d4e5f6a7/12345-3"><img id="sm" src="https://image-node.hath.network/h/test/page.webp" alt="page.webp" /></a></div><div id="ia"><a href="https://e-hentai.org/lofi/s/b2c3d4e5f6/12345-1">Prev</a><a href="https://e-hentai.org/lofi/s/c3d4e5f6a7/12345-3">Next</a></div>`);
+    };
+
+    try {
+        const response = await worker.fetch(new Request('https://example.com/api/ehviewer/image?gid=12345&token=a1b2c3d4e5&page=2'), env);
+        const data = await response.json();
+        assert.equal(response.status, 200);
+        assert.equal(data.imageUrl, 'https://image-node.hath.network/h/test/page.webp');
+        assert.equal(data.previous.pageNumber, 1);
+        assert.equal(data.next.pageToken, 'c3d4e5f6a7');
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
+test('EhViewer 后续缩略图分组不会重复消耗元数据 API 配额', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+        const url = new URL(input);
+        assert.equal(url.hostname, 'e-hentai.org');
+        assert.equal(url.pathname, '/lofi/g/12345/f1e2d3c4b5/1');
+        return new Response(`<div id="gh"><a href="https://e-hentai.org/lofi/s/c3d4e5f6a7/12345-21"><div title="Page 21" style="width:188px;height:300px;background:transparent url(https://ehgt.org/aa/page21.webp) 0 0 no-repeat"></div></a></div>`);
+    };
+
+    try {
+        const response = await worker.fetch(new Request('https://example.com/api/ehviewer/gallery?gid=12345&token=f1e2d3c4b5&batch=1&count=21'), env);
+        const data = await response.json();
+        assert.equal(response.status, 200);
+        assert.equal(data.previews[0].pageNumber, 21);
+        assert.equal(data.batchCount, 2);
+        assert.equal('gallery' in data, false);
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
+});
+
+test('EhViewer 拒绝伪造的画廊与图片页参数', async () => {
+    for (const path of [
+        '/api/ehviewer?next=javascript:alert(1)',
+        '/api/ehviewer/gallery?gid=1&token=not-a-token&batch=0',
+        '/api/ehviewer/image?gid=1&token=../../secret&page=1'
+    ]) {
+        const response = await worker.fetch(new Request(`https://example.com${path}`), env);
+        assert.equal(response.status, 400, path);
+    }
+});
+
 test('未绑定 D1 时内容接口返回明确错误', async () => {
     const response = await worker.fetch(new Request('https://example.com/api/content?section=blog'), env);
     assert.equal(response.status, 503);

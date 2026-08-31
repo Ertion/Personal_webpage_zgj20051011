@@ -8,6 +8,7 @@
     <title>ZGJ Archive｜个人档案馆</title>
     <link rel="stylesheet" href="database-ui.css">
     <link rel="stylesheet" href="steam-ui.css">
+    <link rel="stylesheet" href="ehviewer-ui.css">
     <style>
         :root {
             --navy: #0c2033;
@@ -648,6 +649,70 @@
                 </div>
             </section>
 
+            <section class="ehviewer-card card" id="ehviewer" aria-labelledby="ehviewerHeading">
+                <header class="ehviewer-head">
+                    <div>
+                        <p class="ehviewer-kicker">Public Gallery Reader</p>
+                        <h2 class="ehviewer-title" id="ehviewerHeading">EhViewer</h2>
+                        <p class="ehviewer-intro">浏览 E-Hentai 的公开画廊，查看基础资料并直接开始图片阅读；不需要 E-Hentai 账号。</p>
+                    </div>
+                    <span class="ehviewer-age-mark" aria-label="仅限成年人">18+</span>
+                </header>
+
+                <div class="ehviewer-consent" id="ehviewerConsent">
+                    <span class="ehviewer-consent-icon" aria-hidden="true">E</span>
+                    <div class="ehviewer-consent-copy">
+                        <h3>进入公开画廊</h3>
+                        <p>此区域可能展示成人内容。继续即表示你已年满 18 岁，并同意仅浏览公开可访问的内容。</p>
+                    </div>
+                    <button class="ehviewer-primary" id="ehviewerEnterButton" type="button">我已年满 18 岁</button>
+                </div>
+
+                <div class="ehviewer-browser" id="ehviewerBrowser" hidden>
+                    <form class="ehviewer-search" id="ehviewerSearchForm">
+                        <label class="visually-hidden" for="ehviewerSearchInput">搜索公开画廊</label>
+                        <input id="ehviewerSearchInput" name="search" maxlength="120" autocomplete="off" placeholder="搜索标题、作者、标签或语言">
+                        <button class="ehviewer-primary" id="ehviewerSearchButton" type="submit">搜索</button>
+                        <button class="ehviewer-secondary" id="ehviewerLatestButton" type="button">最新</button>
+                    </form>
+                    <div class="ehviewer-browser-meta">
+                        <p class="ehviewer-status" id="ehviewerStatus" role="status" aria-live="polite"></p>
+                        <span class="ehviewer-source">公开来源 · E-Hentai</span>
+                    </div>
+
+                    <div class="ehviewer-gallery-grid" id="ehviewerGalleryGrid" aria-live="polite"></div>
+                    <div class="ehviewer-list-actions">
+                        <button class="ehviewer-secondary" id="ehviewerLoadMoreButton" type="button" hidden>加载更多</button>
+                    </div>
+
+                    <article class="ehviewer-detail" id="ehviewerDetail" hidden aria-labelledby="ehviewerDetailTitle">
+                        <button class="ehviewer-back" id="ehviewerBackButton" type="button">← 返回画廊列表</button>
+                        <div class="ehviewer-detail-layout">
+                            <img class="ehviewer-detail-cover" id="ehviewerDetailCover" alt="" width="240" height="340" referrerpolicy="no-referrer">
+                            <div class="ehviewer-detail-copy">
+                                <span class="ehviewer-category" id="ehviewerDetailCategory"></span>
+                                <h3 id="ehviewerDetailTitle"></h3>
+                                <p class="ehviewer-japanese-title" id="ehviewerDetailJapanese"></p>
+                                <dl class="ehviewer-facts" id="ehviewerFacts"></dl>
+                                <div class="ehviewer-tag-list" id="ehviewerTagList" aria-label="画廊标签"></div>
+                                <button class="ehviewer-primary ehviewer-read-first" id="ehviewerReadButton" type="button">从第 1 页开始阅读</button>
+                            </div>
+                        </div>
+                        <header class="ehviewer-preview-head">
+                            <div>
+                                <h4>图片预览</h4>
+                                <p id="ehviewerPreviewMeta"></p>
+                            </div>
+                            <div class="ehviewer-preview-actions">
+                                <button class="ehviewer-secondary" id="ehviewerPreviewPrev" type="button">上一组</button>
+                                <button class="ehviewer-secondary" id="ehviewerPreviewNext" type="button">下一组</button>
+                            </div>
+                        </header>
+                        <div class="ehviewer-preview-grid" id="ehviewerPreviewGrid"></div>
+                    </article>
+                </div>
+            </section>
+
             </div>
 
             <div class="page-view" id="view-admin" data-view="admin" hidden>
@@ -793,6 +858,27 @@
                 <button class="database-primary" id="contentSaveButton" type="submit">保存</button>
             </footer>
         </form>
+    </dialog>
+
+    <dialog class="ehviewer-reader" id="ehviewerReader" aria-labelledby="ehviewerReaderTitle">
+        <div class="ehviewer-reader-shell">
+            <header class="ehviewer-reader-head">
+                <div>
+                    <p class="ehviewer-reader-kicker">EhViewer Reader</p>
+                    <h2 id="ehviewerReaderTitle">图片阅读</h2>
+                </div>
+                <button class="ehviewer-reader-close" id="ehviewerReaderClose" type="button" aria-label="关闭阅读器">×</button>
+            </header>
+            <div class="ehviewer-reader-stage" id="ehviewerReaderStage">
+                <p class="ehviewer-reader-message" id="ehviewerReaderMessage" role="status" aria-live="polite">正在准备图片…</p>
+                <img id="ehviewerReaderImage" alt="" referrerpolicy="no-referrer" hidden>
+            </div>
+            <footer class="ehviewer-reader-controls">
+                <button class="ehviewer-reader-button" id="ehviewerReaderPrev" type="button">← 上一页</button>
+                <span id="ehviewerReaderProgress">第 1 页</span>
+                <button class="ehviewer-reader-button" id="ehviewerReaderNext" type="button">下一页 →</button>
+            </footer>
+        </div>
     </dialog>
 
     <dialog class="database-dialog" id="eventDialog" aria-labelledby="eventDialogTitle" data-owner-only hidden>
@@ -1050,5 +1136,6 @@
     </script>
     <script src="database-ui.js"></script>
     <script src="steam-ui.js"></script>
+    <script src="ehviewer-ui.js"></script>
 </body>
 </html>

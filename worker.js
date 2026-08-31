@@ -5,6 +5,10 @@ const OWNER_STEAM_ID = '76561199258285994';
 const STEAM_CACHE_TTL_SECONDS = 30 * 60;
 const STEAM_QUERY_WINDOW_SECONDS = 10 * 60;
 const STEAM_QUERY_LIMIT = 12;
+const EH_LOFI_ORIGIN = 'https://e-hentai.org';
+const EH_API_URL = 'https://api.e-hentai.org/api.php';
+const EH_GALLERY_PAGE_SIZE = 20;
+const EH_BLOCKED_TAGS = new Set(['female:lolicon', 'male:shotacon', 'female:underage', 'male:underage']);
 const CONTENT_SECTIONS = new Set(['admin', 'blog', 'engineering', 'laboratory', 'chatgpt', 'more']);
 const CONTENT_STATUSES = new Set(['draft', 'published']);
 const EVENT_STATUSES = new Set(['planned', 'in_progress', 'completed']);
@@ -487,6 +491,277 @@ async function querySteamProfile(request, env) {
     }
 }
 
+function decodeHtml(value) {
+    const named = {
+        amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0'
+    };
+    return String(value || '')
+        .replace(/&#x([0-9a-f]+);/gi, (match, code) => String.fromCodePoint(Number.parseInt(code, 16)))
+        .replace(/&#(\d+);/g, (match, code) => String.fromCodePoint(Number.parseInt(code, 10)))
+        .replace(/&([a-z]+);/gi, (match, name) => named[name.toLowerCase()] ?? match);
+}
+
+function stripHtml(value) {
+    return decodeHtml(String(value || '').replace(/<[^>]*>/g, '')).replace(/\u00a0/g, ' ').trim();
+}
+
+function safeEhImageUrl(value) {
+    try {
+        const url = new URL(decodeHtml(value));
+        const hostname = url.hostname.toLowerCase();
+        const allowed = hostname === 'ehgt.org'
+            || hostname.endsWith('.ehgt.org')
+            || hostname === 'hath.network'
+            || hostname.endsWith('.hath.network');
+        return url.protocol === 'https:' && allowed ? url.toString() : '';
+    } catch (error) {
+        return '';
+    }
+}
+
+function ehGalleryIsAllowed(tags) {
+    return !tags.some((tag) => EH_BLOCKED_TAGS.has(String(tag || '').trim().toLowerCase()));
+}
+
+async function fetchEhHtml(url, cacheTtl = 60) {
+    let response;
+    try {
+        response = await fetch(url, {
+            redirect: 'follow',
+            headers: {
+                Accept: 'text/html,application/xhtml+xml',
+                'User-Agent': 'ZGJ-Archive/1.0 (public gallery reader; no account cookies)'
+            },
+            cf: { cacheEverything: true, cacheTtl }
+        });
+    } catch (error) {
+        throw Object.assign(new Error('暂时无法连接公开画廊，请稍后重试'), { status: 502 });
+    }
+    if (!response.ok) {
+        const message = response.status === 509
+            ? '公开画廊已触发临时流量限制，请稍后再试'
+            : '公开画廊暂时没有返回有效内容';
+        throw Object.assign(new Error(message), { status: response.status === 404 ? 404 : 502 });
+    }
+    const length = Number(response.headers.get('Content-Length')) || 0;
+    if (length > 2_000_000) throw Object.assign(new Error('公开画廊返回内容过大'), { status: 502 });
+    return response.text();
+}
+
+function parseEhList(html) {
+    const items = [];
+    const pattern = /<div><div><a href="https:\/\/e-hentai\.org\/lofi\/s\/([a-f0-9]{10})\/(\d+)-1"><img src="([^"]+)"[^>]*><\/a><\/div><div><h2><a href="https:\/\/e-hentai\.org\/lofi\/g\/\2\/([a-f0-9]{10})\/">([\s\S]*?)<\/a><\/h2><p>([\s\S]*?)<\/p>([\s\S]*?)(?=<\/div><\/div>)/gi;
+    for (const match of html.matchAll(pattern)) {
+        const metaParts = stripHtml(match[6].replace(/&nbsp;/gi, '  '))
+            .split(/\s{2,}/)
+            .map((part) => part.trim())
+            .filter(Boolean);
+        const tags = [];
+        const tagPattern = /<tr><td>([^<]+):?<\/td><td>([\s\S]*?)<\/td><\/tr>/gi;
+        for (const tagMatch of match[7].matchAll(tagPattern)) {
+            const namespace = stripHtml(tagMatch[1]).replace(/:$/, '');
+            const values = stripHtml(tagMatch[2]).split(',').map((tag) => tag.trim()).filter(Boolean);
+            values.forEach((tag) => tags.push(namespace ? `${namespace}:${tag}` : tag));
+        }
+        const pagesText = metaParts.find((part) => /^\d+p$/i.test(part)) || '0p';
+        const pagesIndex = metaParts.indexOf(pagesText);
+        items.push({
+            gid: match[2],
+            token: match[4],
+            firstPageToken: match[1],
+            title: stripHtml(match[5]),
+            thumbUrl: safeEhImageUrl(match[3]),
+            posted: metaParts[0] || '',
+            category: pagesIndex > 1 ? metaParts.slice(1, pagesIndex).join(' ') : (metaParts[1] || ''),
+            pages: Number.parseInt(pagesText, 10) || 0,
+            uploader: pagesIndex >= 0 ? (metaParts[pagesIndex + 1] || '') : '',
+            tags
+        });
+    }
+
+    const pager = html.match(/<div id="ia">([\s\S]*?)<\/div>/i)?.[1] || '';
+    const nextCursor = pager.match(/[?&](?:amp;)?next=(\d+)/i)?.[1] || null;
+    return { items: items.filter((item) => ehGalleryIsAllowed(item.tags)), nextCursor };
+}
+
+function parseEhPreviews(html) {
+    const previews = [];
+    const pattern = /<a href="https:\/\/e-hentai\.org\/lofi\/s\/([a-f0-9]{10})\/(\d+)-(\d+)"><div title="Page (\d+)" style="[^"]*?url\((https:\/\/[^)]+)\)[^"]*"><\/div><\/a>/gi;
+    for (const match of html.matchAll(pattern)) {
+        const thumbUrl = safeEhImageUrl(match[5]);
+        if (!thumbUrl) continue;
+        previews.push({
+            pageToken: match[1],
+            pageNumber: Number(match[3]) || Number(match[4]) || 1,
+            thumbUrl
+        });
+    }
+    return previews;
+}
+
+async function fetchEhMetadata(gid, token) {
+    let response;
+    try {
+        response = await fetch(EH_API_URL, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'User-Agent': 'ZGJ-Archive/1.0 (public gallery reader; no account cookies)'
+            },
+            body: JSON.stringify({ method: 'gdata', gidlist: [[Number(gid), token]], namespace: 1 })
+        });
+    } catch (error) {
+        throw Object.assign(new Error('暂时无法读取画廊资料，请稍后重试'), { status: 502 });
+    }
+    if (!response.ok) throw Object.assign(new Error('画廊资料暂时不可用'), { status: 502 });
+    let data;
+    try {
+        data = await response.json();
+    } catch (error) {
+        throw Object.assign(new Error('画廊资料格式无效'), { status: 502 });
+    }
+    const metadata = data?.gmetadata?.[0];
+    if (!metadata || metadata.error) {
+        throw Object.assign(new Error(metadata?.error || '没有找到这个公开画廊'), { status: 404 });
+    }
+    return metadata;
+}
+
+function validEhGalleryId(value) {
+    return /^\d{1,10}$/.test(value || '');
+}
+
+function validEhToken(value) {
+    return /^[a-f0-9]{10}$/i.test(value || '');
+}
+
+async function listEhGalleries(request) {
+    const requestUrl = new URL(request.url);
+    const search = cleanString(requestUrl.searchParams.get('search'), 120);
+    const next = cleanString(requestUrl.searchParams.get('next'), 12);
+    if (next && !/^\d{1,10}$/.test(next)) return json({ message: '画廊分页参数无效' }, 400);
+
+    const upstream = new URL('/lofi/', EH_LOFI_ORIGIN);
+    if (search) upstream.searchParams.set('f_search', search);
+    if (next) upstream.searchParams.set('next', next);
+    try {
+        const html = await fetchEhHtml(upstream, 60);
+        const parsed = parseEhList(html);
+        if (!parsed.items.length && !/No hits found/i.test(html)) {
+            throw Object.assign(new Error('公开画廊页面结构暂时无法识别'), { status: 502 });
+        }
+        return json({
+            items: parsed.items,
+            nextCursor: parsed.nextCursor,
+            search,
+            fetchedAt: new Date().toISOString()
+        }, 200, { 'Cache-Control': 'private, max-age=30' });
+    } catch (error) {
+        return json({ message: error?.message || '公开画廊暂时不可用' }, error?.status || 502);
+    }
+}
+
+async function getEhGallery(request) {
+    const requestUrl = new URL(request.url);
+    const gid = cleanString(requestUrl.searchParams.get('gid'), 10);
+    const token = cleanString(requestUrl.searchParams.get('token'), 10).toLowerCase();
+    const batchValue = cleanString(requestUrl.searchParams.get('batch'), 4, '0');
+    const knownCountValue = cleanString(requestUrl.searchParams.get('count'), 7);
+    if (!validEhGalleryId(gid) || !validEhToken(token) || !/^\d{1,3}$/.test(batchValue)) {
+        return json({ message: '画廊地址参数无效' }, 400);
+    }
+    const batch = Number(batchValue);
+    if (batch > 999) return json({ message: '画廊分页超出范围' }, 400);
+    if (batch > 0 && !/^\d{1,7}$/.test(knownCountValue)) return json({ message: '画廊页数参数无效' }, 400);
+
+    const galleryPath = `/lofi/g/${gid}/${token}/${batch ? batch : ''}`;
+    try {
+        if (batch > 0) {
+            const fileCount = Number(knownCountValue);
+            const batchCount = Math.max(1, Math.ceil(fileCount / EH_GALLERY_PAGE_SIZE));
+            if (batch >= batchCount) return json({ message: '画廊分页超出范围' }, 404);
+            const html = await fetchEhHtml(new URL(galleryPath, EH_LOFI_ORIGIN), 300);
+            const previews = parseEhPreviews(html);
+            if (!previews.length) throw Object.assign(new Error('该组暂时没有可读取的公开图片'), { status: 404 });
+            return json({ previews, batch, batchCount }, 200, { 'Cache-Control': 'private, max-age=120' });
+        }
+
+        const [metadata, html] = await Promise.all([
+            fetchEhMetadata(gid, token),
+            fetchEhHtml(new URL(galleryPath, EH_LOFI_ORIGIN), 300)
+        ]);
+        const metadataTags = Array.isArray(metadata.tags)
+            ? metadata.tags.map((tag) => cleanString(decodeHtml(tag), 180)).filter(Boolean)
+            : [];
+        if (!ehGalleryIsAllowed(metadataTags)) {
+            return json({ message: '该画廊不在本站允许展示的范围内' }, 451);
+        }
+        const previews = parseEhPreviews(html);
+        if (!previews.length) throw Object.assign(new Error('该画廊暂时没有可读取的公开图片'), { status: 404 });
+        const fileCount = Math.max(0, Number(metadata.filecount) || 0);
+        const batchCount = Math.max(1, Math.ceil(fileCount / EH_GALLERY_PAGE_SIZE));
+        if (batch >= batchCount) return json({ message: '画廊分页超出范围' }, 404);
+        return json({
+            gallery: {
+                gid,
+                token,
+                title: cleanString(decodeHtml(metadata.title), 500, `Gallery ${gid}`),
+                japaneseTitle: cleanString(decodeHtml(metadata.title_jpn), 500),
+                category: cleanString(metadata.category, 60),
+                thumbUrl: safeEhImageUrl(metadata.thumb),
+                uploader: cleanString(metadata.uploader, 160),
+                postedAt: Number(metadata.posted) > 0 ? new Date(Number(metadata.posted) * 1000).toISOString() : '',
+                fileCount,
+                fileSize: Math.max(0, Number(metadata.filesize) || 0),
+                rating: Number(metadata.rating) || 0,
+                tags: metadataTags,
+                externalUrl: `${EH_LOFI_ORIGIN}/g/${gid}/${token}/`
+            },
+            previews,
+            batch,
+            batchCount
+        }, 200, { 'Cache-Control': 'private, max-age=120' });
+    } catch (error) {
+        return json({ message: error?.message || '画廊资料暂时不可用' }, error?.status || 502);
+    }
+}
+
+async function getEhImage(request) {
+    const requestUrl = new URL(request.url);
+    const gid = cleanString(requestUrl.searchParams.get('gid'), 10);
+    const pageToken = cleanString(requestUrl.searchParams.get('token'), 10).toLowerCase();
+    const pageValue = cleanString(requestUrl.searchParams.get('page'), 8);
+    if (!validEhGalleryId(gid) || !validEhToken(pageToken) || !/^\d{1,6}$/.test(pageValue)) {
+        return json({ message: '图片页参数无效' }, 400);
+    }
+    const pageNumber = Number(pageValue);
+    if (pageNumber < 1) return json({ message: '图片页参数无效' }, 400);
+
+    try {
+        const html = await fetchEhHtml(new URL(`/lofi/s/${pageToken}/${gid}-${pageNumber}`, EH_LOFI_ORIGIN), 30);
+        const imageMatch = html.match(/<img id="sm" src="([^"]+)" alt="([^"]*)"/i);
+        const imageUrl = safeEhImageUrl(imageMatch?.[1]);
+        if (!imageUrl) throw Object.assign(new Error('该图片暂时无法读取'), { status: 404 });
+        const navigation = [];
+        const linkPattern = /href="https:\/\/e-hentai\.org\/lofi\/s\/([a-f0-9]{10})\/\d+-(\d+)"/gi;
+        for (const match of html.matchAll(linkPattern)) {
+            navigation.push({ pageToken: match[1], pageNumber: Number(match[2]) });
+        }
+        const previous = navigation.find((item) => item.pageNumber === pageNumber - 1) || null;
+        const next = navigation.find((item) => item.pageNumber === pageNumber + 1) || null;
+        return json({
+            imageUrl,
+            fileName: cleanString(decodeHtml(imageMatch?.[2]), 300, `page-${pageNumber}`),
+            pageNumber,
+            previous,
+            next
+        });
+    } catch (error) {
+        return json({ message: error?.message || '图片暂时不可用' }, error?.status || 502);
+    }
+}
+
 async function isOwner(request, env) {
     if (!env.SESSION_SECRET) return false;
     return verifySessionToken(readCookie(request, SESSION_COOKIE), env.SESSION_SECRET);
@@ -760,6 +1035,21 @@ export default {
         if (/^\/api\/steam\/query\/?$/.test(url.pathname)) {
             if (request.method === 'POST') return querySteamProfile(request, env);
             return methodNotAllowed('POST');
+        }
+
+        if (/^\/api\/ehviewer\/?$/.test(url.pathname)) {
+            if (request.method === 'GET') return listEhGalleries(request);
+            return methodNotAllowed('GET');
+        }
+
+        if (/^\/api\/ehviewer\/gallery\/?$/.test(url.pathname)) {
+            if (request.method === 'GET') return getEhGallery(request);
+            return methodNotAllowed('GET');
+        }
+
+        if (/^\/api\/ehviewer\/image\/?$/.test(url.pathname)) {
+            if (request.method === 'GET') return getEhImage(request);
+            return methodNotAllowed('GET');
         }
 
         if (/^\/api\/content\/?$/.test(url.pathname)) {
