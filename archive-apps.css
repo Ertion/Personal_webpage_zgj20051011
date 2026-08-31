@@ -1,0 +1,285 @@
+.archive-launcher {
+    position: relative;
+    isolation: isolate;
+    min-height: 330px;
+    padding: 28px 34px 24px;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 82% 18%, rgba(114, 82, 181, 0.24), transparent 30%),
+        radial-gradient(circle at 14% 82%, rgba(47, 120, 232, 0.22), transparent 32%),
+        linear-gradient(145deg, rgba(244, 250, 255, 0.9), rgba(225, 237, 250, 0.82));
+}
+
+.archive-launcher::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    opacity: 0.32;
+    background-image: radial-gradient(rgba(42, 75, 111, 0.22) 0.8px, transparent 0.8px);
+    background-size: 18px 18px;
+    mask-image: linear-gradient(to bottom, #000, transparent 76%);
+}
+
+.archive-launcher-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.archive-launcher-kicker,
+.archive-app-toolbar p {
+    margin: 0 0 5px;
+    color: #65778d;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.archive-launcher-head h2,
+.archive-app-toolbar h2 {
+    margin: 0;
+    color: #16283d;
+    font-family: Georgia, "Noto Serif SC", "Songti SC", serif;
+}
+
+.archive-launcher-head h2 { font-size: 23px; }
+
+.archive-launcher-status {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 18px;
+    padding: 4px 7px;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.52);
+}
+
+.archive-launcher-status i {
+    width: 3px;
+    border-radius: 2px;
+    background: #44647f;
+}
+
+.archive-launcher-status i:nth-child(1) { height: 4px; }
+.archive-launcher-status i:nth-child(2) { height: 7px; }
+.archive-launcher-status i:nth-child(3) { height: 10px; }
+
+.archive-app-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(96px, 128px));
+    justify-content: start;
+    gap: 30px 42px;
+    margin-top: 44px;
+}
+
+.archive-app-tile {
+    display: grid;
+    justify-items: center;
+    gap: 11px;
+    min-width: 0;
+    padding: 8px;
+    color: #1c2d42;
+    border: 0;
+    border-radius: 20px;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+    transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.archive-app-tile:hover {
+    background: rgba(255, 255, 255, 0.46);
+    transform: translateY(-3px);
+}
+
+.archive-app-tile:active { transform: scale(0.96); }
+
+.archive-app-tile:focus-visible {
+    outline: 3px solid rgba(47, 120, 232, 0.34);
+    outline-offset: 3px;
+}
+
+.archive-app-icon {
+    position: relative;
+    display: grid;
+    width: 76px;
+    height: 76px;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 22px;
+    box-shadow: 0 12px 24px rgba(29, 54, 82, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.26);
+}
+
+.archive-app-icon svg {
+    display: block;
+    width: 62px;
+    height: 62px;
+}
+
+.archive-app-icon-steam {
+    color: #fff;
+    background: linear-gradient(145deg, #173f6b, #081a2c);
+}
+
+.archive-app-icon-steam circle:first-child { fill: rgba(255, 255, 255, 0.06); }
+.archive-app-icon-steam .archive-app-icon-cutout { fill: none; stroke: currentColor; stroke-width: 4; }
+.archive-app-icon-steam .archive-app-icon-line { fill: none; stroke: currentColor; stroke-width: 5; stroke-linecap: round; }
+
+.archive-app-icon-ehviewer {
+    color: #fff;
+    background: linear-gradient(145deg, #9468bd, #4c2e69);
+}
+
+.archive-app-icon-ehviewer svg {
+    width: 58px;
+    height: 58px;
+    fill: rgba(255, 255, 255, 0.08);
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+}
+
+.archive-app-icon-ehviewer > span {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    padding: 2px 5px;
+    color: #51306e;
+    border-radius: 999px;
+    background: #fff8ef;
+    font-size: 9px;
+    font-weight: 900;
+}
+
+.archive-app-name {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.archive-launcher-dock {
+    position: absolute;
+    right: 34px;
+    bottom: 24px;
+    left: 34px;
+    display: flex;
+    justify-content: center;
+    height: 26px;
+    padding-top: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(8px);
+}
+
+.archive-launcher-dock span {
+    width: 72px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(41, 65, 90, 0.5);
+}
+
+.archive-app-panel {
+    display: grid;
+    min-width: 0;
+    gap: 12px;
+    animation: archive-app-enter 180ms ease-out;
+}
+
+.archive-app-panel[hidden],
+.archive-launcher[hidden] { display: none; }
+
+@keyframes archive-app-enter {
+    from { opacity: 0; transform: translateY(7px) scale(0.99); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.archive-app-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 68px;
+    padding: 11px 16px;
+}
+
+.archive-app-toolbar h2 { font-size: 18px; }
+
+.archive-app-back {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    place-items: center;
+    color: #253d55;
+    border: 1px solid rgba(183, 201, 219, 0.8);
+    border-radius: 13px;
+    background: rgba(255, 255, 255, 0.64);
+    font: inherit;
+    font-size: 21px;
+    cursor: pointer;
+    transition: 150ms ease;
+}
+
+.archive-app-back:hover,
+.archive-app-back:focus-visible {
+    color: #fff;
+    border-color: #2f78e8;
+    background: #2f78e8;
+    outline: none;
+    transform: translateX(-2px);
+}
+
+.archive-app-toolbar-icon {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    place-items: center;
+    color: #fff;
+    border-radius: 12px;
+    font-family: Georgia, serif;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.archive-app-toolbar-icon-steam { background: linear-gradient(145deg, #173f6b, #081a2c); }
+.archive-app-toolbar-icon-ehviewer { background: linear-gradient(145deg, #9468bd, #4c2e69); }
+
+@media (max-width: 680px) {
+    .archive-launcher {
+        min-height: 300px;
+        padding: 24px 20px 20px;
+    }
+
+    .archive-app-grid {
+        grid-template-columns: repeat(2, minmax(90px, 1fr));
+        gap: 24px 12px;
+        margin-top: 34px;
+    }
+
+    .archive-app-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 20px;
+    }
+
+    .archive-launcher-dock {
+        right: 20px;
+        bottom: 18px;
+        left: 20px;
+    }
+
+    .archive-app-toolbar { border-radius: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .archive-app-panel { animation: none; }
+}

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="database-ui.css">
     <link rel="stylesheet" href="steam-ui.css">
     <link rel="stylesheet" href="ehviewer-ui.css">
+    <link rel="stylesheet" href="archive-apps.css">
     <style>
         :root {
             --navy: #0c2033;
@@ -602,6 +603,50 @@
                 </div>
             </section>
 
+            <section class="archive-launcher card" id="archiveLauncher" aria-labelledby="archiveLauncherHeading">
+                <header class="archive-launcher-head">
+                    <div>
+                        <p class="archive-launcher-kicker">My Apps</p>
+                        <h2 id="archiveLauncherHeading">个人应用</h2>
+                    </div>
+                    <span class="archive-launcher-status" aria-hidden="true"><i></i><i></i><i></i></span>
+                </header>
+                <div class="archive-app-grid" role="group" aria-label="个人应用">
+                    <button class="archive-app-tile" type="button" data-archive-app="steam" aria-controls="archiveSteamPanel">
+                        <span class="archive-app-icon archive-app-icon-steam" aria-hidden="true">
+                            <svg viewBox="0 0 64 64" focusable="false">
+                                <circle cx="32" cy="32" r="30"></circle>
+                                <circle class="archive-app-icon-cutout" cx="44.5" cy="20.5" r="8.5"></circle>
+                                <circle class="archive-app-icon-cutout" cx="20" cy="42" r="7"></circle>
+                                <path class="archive-app-icon-line" d="M25.5 38.5 38 27"></path>
+                                <path class="archive-app-icon-line" d="m13.5 36 7.5 4"></path>
+                            </svg>
+                        </span>
+                        <span class="archive-app-name">Steam</span>
+                    </button>
+                    <button class="archive-app-tile" type="button" data-archive-app="ehviewer" aria-controls="archiveEhviewerPanel">
+                        <span class="archive-app-icon archive-app-icon-ehviewer" aria-hidden="true">
+                            <svg viewBox="0 0 64 64" focusable="false">
+                                <rect x="15" y="12" width="34" height="40" rx="8"></rect>
+                                <path d="M24 12v40M31 24h11M31 32h11M31 40h8"></path>
+                            </svg>
+                            <span>18+</span>
+                        </span>
+                        <span class="archive-app-name">EhViewer</span>
+                    </button>
+                </div>
+                <div class="archive-launcher-dock" aria-hidden="true"><span></span></div>
+            </section>
+
+            <div class="archive-app-panel" id="archiveSteamPanel" data-archive-app-panel="steam" hidden>
+                <header class="archive-app-toolbar card">
+                    <button class="archive-app-back" type="button" data-archive-app-back aria-label="返回个人应用桌面">←</button>
+                    <span class="archive-app-toolbar-icon archive-app-toolbar-icon-steam" aria-hidden="true">S</span>
+                    <div>
+                        <p>My Apps</p>
+                        <h2>Steam</h2>
+                    </div>
+                </header>
             <section class="steam-card card" id="steam" aria-labelledby="steamHeading">
                 <header class="steam-head">
                     <div>
@@ -648,7 +693,17 @@
                     </div>
                 </div>
             </section>
+            </div>
 
+            <div class="archive-app-panel" id="archiveEhviewerPanel" data-archive-app-panel="ehviewer" hidden>
+                <header class="archive-app-toolbar card">
+                    <button class="archive-app-back" type="button" data-archive-app-back aria-label="返回个人应用桌面">←</button>
+                    <span class="archive-app-toolbar-icon archive-app-toolbar-icon-ehviewer" aria-hidden="true">E</span>
+                    <div>
+                        <p>My Apps</p>
+                        <h2>EhViewer</h2>
+                    </div>
+                </header>
             <section class="ehviewer-card card" id="ehviewer" aria-labelledby="ehviewerHeading">
                 <header class="ehviewer-head">
                     <div>
@@ -712,6 +767,7 @@
                     </article>
                 </div>
             </section>
+            </div>
 
             </div>
 
@@ -1137,5 +1193,6 @@
     <script src="database-ui.js"></script>
     <script src="steam-ui.js"></script>
     <script src="ehviewer-ui.js"></script>
+    <script src="archive-apps.js"></script>
 </body>
 </html>

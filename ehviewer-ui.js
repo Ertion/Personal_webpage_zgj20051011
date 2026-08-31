@@ -398,5 +398,7 @@
         }
     });
 
-    if (sessionStorage.getItem(CONSENT_KEY) === '1') enterEhviewer();
+    document.addEventListener('archiveappopen', (event) => {
+        if (event.detail?.app === 'ehviewer' && sessionStorage.getItem(CONSENT_KEY) === '1') enterEhviewer();
+    });
 })();

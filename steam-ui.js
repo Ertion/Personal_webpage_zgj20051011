@@ -20,6 +20,7 @@
     const ownerButton = document.getElementById('steamOwnerButton');
     let currentData = null;
     let expanded = false;
+    let ownerLoadStarted = false;
 
     function formatDuration(minutes) {
         const value = Number(minutes) || 0;
@@ -146,11 +147,13 @@
     }
 
     async function loadOwner() {
+        ownerLoadStarted = true;
         setStatus('正在读取站长的 Steam 数据…');
         ownerButton.hidden = true;
         try {
             render(await request('/api/steam'));
         } catch (error) {
+            ownerLoadStarted = false;
             result.hidden = true;
             setStatus(error.message || 'Steam 数据暂时不可用', true);
         }
@@ -187,5 +190,7 @@
         renderGames();
     });
     ownerButton.addEventListener('click', loadOwner);
-    loadOwner();
+    document.addEventListener('archiveappopen', (event) => {
+        if (event.detail?.app === 'steam' && !ownerLoadStarted) loadOwner();
+    });
 })();
