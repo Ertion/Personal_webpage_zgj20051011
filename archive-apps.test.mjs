@@ -25,15 +25,31 @@ test('home archive area separates public and owner-only apps with accessible pan
 });
 
 test('archive apps load their remote data only after the matching app opens', async () => {
-    const [steam, ehviewer, launcher] = await Promise.all([
+    const [steam, ehviewer, ledger, launcher] = await Promise.all([
         readFile(join(projectRoot, 'steam-ui.js'), 'utf8'),
         readFile(join(projectRoot, 'ehviewer-ui.js'), 'utf8'),
+        readFile(join(projectRoot, 'ledger-ui.js'), 'utf8'),
         readFile(join(projectRoot, 'archive-apps.js'), 'utf8')
     ]);
 
     assert.match(steam, /event\.detail\?\.app === 'steam'/);
     assert.match(ehviewer, /event\.detail\?\.app === 'ehviewer'/);
+    assert.match(ledger, /event\.detail\?\.app !== 'ledger'/);
+    assert.match(ledger, /\/api\/ledger\?account=/);
     assert.match(launcher, /new CustomEvent\('archiveappopen'/);
     assert.match(launcher, /document\.body\.dataset\.authMode !== 'owner'/);
     assert.match(launcher, /event\.key !== 'Escape'/);
+});
+
+test('ledger app exposes account, month, editable balance and transaction fields', async () => {
+    const html = await readFile(join(projectRoot, 'index.html'), 'utf8');
+    const migration = await readFile(join(projectRoot, 'migrations', '0005_ledger_import.sql'), 'utf8');
+
+    for (const account of ['微信', '支付宝', '银行卡']) {
+        assert.match(html, new RegExp(`data-ledger-account="${account}"`));
+    }
+    for (const id of ['ledgerMonth', 'ledgerEditBalance', 'ledgerEditNote', 'ledgerEditAccount', 'ledgerEditCategory', 'ledgerEditAmount', 'ledgerEditTime', 'ledgerPie']) {
+        assert.match(html, new RegExp(`id="${id}"`));
+    }
+    assert.equal((migration.match(/^\('(?:alipay|wechat|bank)-/gm) || []).length, 1306);
 });

@@ -1,6 +1,7 @@
 .git/
 .wrangler/
 .pnpm-store/
+.tmp-ledger/
 node_modules/
 functions/
 migrations/

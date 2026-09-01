@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="steam-ui.css">
     <link rel="stylesheet" href="ehviewer-ui.css">
     <link rel="stylesheet" href="archive-apps.css">
+    <link rel="stylesheet" href="ledger-ui.css">
     <style>
         :root {
             --navy: #0c2033;
@@ -838,13 +839,78 @@
                         <h2>收支</h2>
                     </div>
                 </header>
-                <section class="archive-app-empty card" aria-labelledby="ledgerAppHeading">
-                    <span class="archive-app-empty-mark archive-app-toolbar-icon-ledger" aria-hidden="true">¥</span>
-                    <div>
-                        <p class="archive-app-empty-kicker">Private Ledger</p>
-                        <h2 id="ledgerAppHeading">收支应用</h2>
-                        <p>仅所有者可见的收支应用入口已创建，功能内容正在准备中。</p>
+                <section class="ledger-shell card" id="ledgerApp" aria-labelledby="ledgerAppHeading">
+                    <header class="ledger-hero">
+                        <div>
+                            <p class="ledger-kicker">Private Ledger · 2026</p>
+                            <h2 id="ledgerAppHeading">收支账本</h2>
+                            <p>按账户和月份整理 1,306 笔已去重流水，分类、余额和每笔交易均可编辑。</p>
+                        </div>
+                        <div class="ledger-month-control" aria-label="账单月份">
+                            <button type="button" id="ledgerPrevMonth" aria-label="上一个月">‹</button>
+                            <label for="ledgerMonth"><span>账单月份</span><input id="ledgerMonth" type="month" min="2026-01" max="2026-08" value="2026-08"></label>
+                            <button type="button" id="ledgerNextMonth" aria-label="下一个月">›</button>
+                        </div>
+                    </header>
+
+                    <nav class="ledger-account-tabs" id="ledgerAccountTabs" aria-label="账户类型">
+                        <button class="is-active" type="button" data-ledger-account="微信" aria-pressed="true"><span>微信</span><small>WeChat Pay</small></button>
+                        <button type="button" data-ledger-account="支付宝" aria-pressed="false"><span>支付宝</span><small>Alipay</small></button>
+                        <button type="button" data-ledger-account="银行卡" aria-pressed="false"><span>银行卡</span><small>ICBC · 9375</small></button>
+                    </nav>
+
+                    <div class="ledger-summary-grid">
+                        <article class="ledger-balance-card">
+                            <span>月末余额</span>
+                            <strong id="ledgerBalance">未设置</strong>
+                            <button type="button" id="ledgerEditBalance">编辑余额</button>
+                        </article>
+                        <article class="ledger-metric-card ledger-metric-expense"><span>本月支出</span><strong id="ledgerExpense">¥0.00</strong></article>
+                        <article class="ledger-metric-card ledger-metric-income"><span>本月收入</span><strong id="ledgerIncome">¥0.00</strong></article>
+                        <article class="ledger-metric-card"><span>交易笔数</span><strong id="ledgerCount">0</strong></article>
                     </div>
+
+                    <div class="ledger-workspace">
+                        <article class="ledger-chart-card">
+                            <header><div><p>MONTHLY OVERVIEW</p><h3>本月收支分布</h3></div><select id="ledgerChartGroup" aria-label="饼图分组方式"><option value="subcategory">按小类</option><option value="direction">按收支类型</option></select></header>
+                            <div class="ledger-chart-body">
+                                <div class="ledger-pie" id="ledgerPie" role="img" aria-label="本月支出分类饼图"><span>载入中</span></div>
+                                <div class="ledger-chart-legend" id="ledgerChartLegend"><p>账单数据正在载入</p></div>
+                            </div>
+                        </article>
+                        <article class="ledger-list-card">
+                            <header><div><p>TRANSACTIONS</p><h3>交易明细</h3></div><span id="ledgerStatus" role="status" aria-live="polite">准备账单</span></header>
+                            <div class="ledger-transaction-list" id="ledgerTransactionList"><p class="ledger-empty">打开收支应用后，将显示所选账户与月份的交易。</p></div>
+                        </article>
+                    </div>
+
+                    <dialog class="ledger-dialog" id="ledgerEditDialog" aria-labelledby="ledgerEditTitle">
+                        <form method="dialog" id="ledgerEditForm">
+                            <header><div><p>EDIT TRANSACTION</p><h3 id="ledgerEditTitle">编辑交易</h3></div><button type="button" data-ledger-close aria-label="关闭">×</button></header>
+                            <input id="ledgerEditId" type="hidden">
+                            <label class="ledger-field ledger-field-wide"><span>备注</span><input id="ledgerEditNote" maxlength="600" autocomplete="off"></label>
+                            <div class="ledger-form-grid">
+                                <label class="ledger-field"><span>大类</span><select id="ledgerEditAccount"><option>微信</option><option>支付宝</option><option>银行卡</option></select></label>
+                                <label class="ledger-field"><span>小类</span><select id="ledgerEditCategory"></select></label>
+                                <label class="ledger-field"><span>收支类型</span><select id="ledgerEditDirection"><option value="expense">支出</option><option value="income">收入</option><option value="neutral">不计收支</option></select></label>
+                                <label class="ledger-field"><span>金额（元）</span><input id="ledgerEditAmount" type="number" min="0" max="1000000000" step="0.01" required></label>
+                                <label class="ledger-field ledger-field-wide"><span>交易时间</span><input id="ledgerEditTime" type="datetime-local" step="1" required></label>
+                            </div>
+                            <p class="ledger-dialog-source" id="ledgerEditSource"></p>
+                            <p class="ledger-dialog-status" id="ledgerEditStatus" role="status" aria-live="polite"></p>
+                            <footer><button type="button" class="ledger-button-secondary" data-ledger-close>取消</button><button type="submit" class="ledger-button-primary">保存修改</button></footer>
+                        </form>
+                    </dialog>
+
+                    <dialog class="ledger-dialog ledger-balance-dialog" id="ledgerBalanceDialog" aria-labelledby="ledgerBalanceTitle">
+                        <form method="dialog" id="ledgerBalanceForm">
+                            <header><div><p>MONTH-END BALANCE</p><h3 id="ledgerBalanceTitle">编辑月末余额</h3></div><button type="button" data-ledger-close aria-label="关闭">×</button></header>
+                            <p id="ledgerBalanceContext"></p>
+                            <label class="ledger-field"><span>余额（元）</span><input id="ledgerBalanceInput" type="number" min="-1000000000" max="1000000000" step="0.01" placeholder="留空表示未设置"></label>
+                            <p class="ledger-dialog-status" id="ledgerBalanceStatus" role="status" aria-live="polite"></p>
+                            <footer><button type="button" class="ledger-button-secondary" data-ledger-close>取消</button><button type="submit" class="ledger-button-primary">保存余额</button></footer>
+                        </form>
+                    </dialog>
                 </section>
             </div>
 
@@ -1273,5 +1339,6 @@
     <script src="steam-ui.js"></script>
     <script src="ehviewer-ui.js"></script>
     <script src="archive-apps.js"></script>
+    <script src="ledger-ui.js"></script>
 </body>
 </html>

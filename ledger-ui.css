@@ -1,0 +1,140 @@
+.ledger-shell {
+    --ledger-ink: #1d2a35;
+    --ledger-muted: #71808c;
+    --ledger-line: rgba(44, 60, 72, 0.12);
+    --ledger-paper: rgba(255, 254, 250, 0.82);
+    padding: 28px;
+    color: var(--ledger-ink);
+    background: linear-gradient(145deg, rgba(255, 253, 247, 0.96), rgba(244, 239, 227, 0.94));
+}
+
+.ledger-hero,
+.ledger-chart-card > header,
+.ledger-list-card > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.ledger-kicker,
+.ledger-chart-card header p,
+.ledger-list-card header p {
+    margin: 0 0 6px;
+    color: #9a6b3d;
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: 0.16em;
+}
+
+.ledger-hero h2 { margin: 0; font: 700 28px/1.2 Georgia, "Noto Serif SC", serif; }
+.ledger-hero > div > p:last-child { max-width: 640px; margin: 9px 0 0; color: var(--ledger-muted); font-size: 13px; line-height: 1.7; }
+
+.ledger-month-control { display: flex; align-items: stretch; border: 1px solid var(--ledger-line); border-radius: 14px; background: rgba(255, 255, 255, 0.68); overflow: hidden; }
+.ledger-month-control button { width: 38px; border: 0; color: #815a37; background: transparent; font-size: 22px; cursor: pointer; }
+.ledger-month-control button:hover { background: rgba(154, 107, 61, 0.1); }
+.ledger-month-control label { display: grid; min-width: 138px; padding: 7px 10px; border-inline: 1px solid var(--ledger-line); }
+.ledger-month-control label span { color: var(--ledger-muted); font-size: 9px; font-weight: 800; letter-spacing: 0.08em; }
+.ledger-month-control input { border: 0; color: var(--ledger-ink); background: transparent; font: 700 13px/1.4 inherit; outline: none; }
+
+.ledger-account-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 24px; }
+.ledger-account-tabs button { display: grid; gap: 2px; min-height: 66px; padding: 12px 16px; text-align: left; border: 1px solid var(--ledger-line); border-radius: 16px; color: #4c5a65; background: rgba(255, 255, 255, 0.54); cursor: pointer; transition: 160ms ease; }
+.ledger-account-tabs button span { font: 750 16px/1.3 inherit; }
+.ledger-account-tabs button small { color: #8b969e; font-size: 10px; }
+.ledger-account-tabs button.is-active { color: #fff; border-color: #9c6b3b; background: linear-gradient(135deg, #a87542, #70492c); box-shadow: 0 10px 24px rgba(112, 73, 44, 0.2); transform: translateY(-2px); }
+.ledger-account-tabs button.is-active small { color: rgba(255, 255, 255, 0.72); }
+
+.ledger-summary-grid { display: grid; grid-template-columns: 1.35fr repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+.ledger-balance-card,
+.ledger-metric-card { min-height: 102px; padding: 17px 18px; border: 1px solid var(--ledger-line); border-radius: 17px; background: rgba(255, 255, 255, 0.62); }
+.ledger-balance-card { position: relative; color: #fff; border-color: transparent; background: linear-gradient(140deg, #26333d, #11191f); overflow: hidden; }
+.ledger-balance-card::after { content: "¥"; position: absolute; right: 14px; bottom: -25px; color: rgba(255, 255, 255, 0.06); font: 700 92px/1 Georgia, serif; }
+.ledger-balance-card span,
+.ledger-metric-card span { display: block; color: #7f8c95; font-size: 11px; font-weight: 700; }
+.ledger-balance-card span { color: rgba(255, 255, 255, 0.62); }
+.ledger-balance-card strong,
+.ledger-metric-card strong { display: block; margin-top: 8px; font: 700 24px/1.2 Georgia, "Microsoft YaHei", serif; }
+.ledger-balance-card button { position: absolute; z-index: 1; top: 14px; right: 14px; padding: 5px 9px; color: #fff; border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 999px; background: rgba(255, 255, 255, 0.08); font: 700 10px/1 inherit; cursor: pointer; }
+.ledger-metric-expense strong { color: #b54d42; }
+.ledger-metric-income strong { color: #2e7b66; }
+
+.ledger-workspace { display: grid; grid-template-columns: minmax(280px, 0.8fr) minmax(420px, 1.35fr); gap: 12px; margin-top: 12px; }
+.ledger-chart-card,
+.ledger-list-card { padding: 20px; border: 1px solid var(--ledger-line); border-radius: 18px; background: var(--ledger-paper); }
+.ledger-chart-card h3,
+.ledger-list-card h3 { margin: 0; font: 700 18px/1.3 Georgia, "Noto Serif SC", serif; }
+.ledger-chart-card select { padding: 7px 9px; border: 1px solid var(--ledger-line); border-radius: 9px; color: #48545d; background: #fff; font: 700 11px/1.2 inherit; }
+.ledger-chart-body { display: grid; gap: 18px; margin-top: 22px; }
+.ledger-pie { display: grid; width: min(218px, 72vw); aspect-ratio: 1; place-items: center; margin: 0 auto; border-radius: 50%; background: conic-gradient(#d6c8b8 0 100%); box-shadow: inset 0 0 0 28px rgba(255, 254, 250, 0.9); }
+.ledger-pie span { display: grid; width: 52%; aspect-ratio: 1; place-items: center; align-content: center; gap: 2px; text-align: center; color: #6b747a; border-radius: 50%; background: #fffefa; font-size: 11px; font-weight: 750; }
+.ledger-pie span small { color: #8a949b; font-size: 9px; font-weight: 750; }
+.ledger-pie span strong { max-width: 90%; color: #29353d; font: 700 14px/1.2 Georgia, "Microsoft YaHei", serif; }
+.ledger-chart-legend { display: grid; gap: 8px; }
+.ledger-chart-legend p { margin: 0; color: var(--ledger-muted); font-size: 12px; text-align: center; }
+.ledger-legend-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #53606a; font-size: 11px; }
+.ledger-legend-row span { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+.ledger-legend-row i { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: var(--legend-color); }
+.ledger-legend-row strong { color: #35414a; font-size: 10px; white-space: nowrap; }
+.ledger-list-card > header > span { color: var(--ledger-muted); font-size: 11px; }
+.ledger-transaction-list { min-height: 288px; margin-top: 14px; border-top: 1px solid var(--ledger-line); }
+.ledger-empty { margin: 0; padding: 72px 20px; color: var(--ledger-muted); text-align: center; font-size: 12px; }
+.ledger-error { color: #a94c43; }
+.ledger-date-heading { margin: 16px 0 5px; color: #8a949b; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; }
+.ledger-transaction-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto auto; align-items: center; gap: 11px; min-height: 67px; padding: 10px 0; border-bottom: 1px solid rgba(44, 60, 72, 0.08); }
+.ledger-category-mark { display: grid; width: 36px; height: 36px; place-items: center; color: var(--category-color); border-radius: 12px; background: color-mix(in srgb, var(--category-color) 14%, #fff); font-size: 12px; font-weight: 850; }
+.ledger-transaction-copy { min-width: 0; }
+.ledger-transaction-copy > strong { display: block; overflow: hidden; color: #303c45; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.ledger-transaction-copy p { margin: 5px 0 0; overflow: hidden; color: #8a949b; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.ledger-transaction-amount { color: #5b6770; font: 700 12px/1.2 Georgia, "Microsoft YaHei", serif; white-space: nowrap; }
+.ledger-transaction-amount.is-expense { color: #b54d42; }
+.ledger-transaction-amount.is-income { color: #2e7b66; }
+.ledger-transaction-row > button { padding: 6px 8px; color: #775538; border: 1px solid rgba(119, 85, 56, 0.22); border-radius: 8px; background: rgba(255, 255, 255, 0.58); font: 750 9px/1 inherit; cursor: pointer; }
+
+.ledger-dialog { width: min(560px, calc(100vw - 28px)); padding: 0; color: var(--ledger-ink); border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 20px; background: #fbf8f1; box-shadow: 0 28px 80px rgba(28, 35, 40, 0.34); }
+.ledger-dialog::backdrop { background: rgba(16, 23, 29, 0.56); backdrop-filter: blur(4px); }
+.ledger-dialog form { padding: 22px; }
+.ledger-dialog header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.ledger-dialog header p { margin: 0 0 5px; color: #9a6b3d; font-size: 9px; font-weight: 850; letter-spacing: 0.16em; }
+.ledger-dialog h3 { margin: 0; font: 700 21px/1.2 Georgia, "Noto Serif SC", serif; }
+.ledger-dialog header > button { width: 34px; height: 34px; color: #6e777d; border: 1px solid var(--ledger-line); border-radius: 10px; background: rgba(255, 255, 255, 0.7); font-size: 19px; cursor: pointer; }
+.ledger-field { display: grid; gap: 6px; margin-top: 16px; color: #56636c; font-size: 11px; font-weight: 750; }
+.ledger-field input,
+.ledger-field select { width: 100%; min-height: 42px; padding: 8px 10px; color: #29363f; border: 1px solid rgba(55, 72, 83, 0.18); border-radius: 10px; background: #fff; font: 550 12px/1.4 inherit; outline: none; }
+.ledger-field input:focus,
+.ledger-field select:focus { border-color: #a87542; box-shadow: 0 0 0 3px rgba(168, 117, 66, 0.12); }
+.ledger-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.ledger-field-wide { grid-column: 1 / -1; }
+.ledger-dialog-source { margin: 16px 0 0; padding: 10px 12px; color: #7b858c; border-radius: 10px; background: rgba(99, 109, 115, 0.06); font-size: 10px; line-height: 1.6; }
+.ledger-dialog-source:empty { display: none; }
+.ledger-dialog-status { min-height: 18px; margin: 10px 0 0; color: #a94c43; font-size: 10px; }
+.ledger-dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.ledger-button-primary,
+.ledger-button-secondary { min-height: 38px; padding: 0 15px; border-radius: 10px; font: 750 11px/1 inherit; cursor: pointer; }
+.ledger-button-primary { color: #fff; border: 0; background: linear-gradient(135deg, #a87542, #70492c); }
+.ledger-button-secondary { color: #5f6b73; border: 1px solid var(--ledger-line); background: #fff; }
+.ledger-dialog button:disabled { opacity: 0.55; cursor: wait; }
+.ledger-balance-dialog { width: min(420px, calc(100vw - 28px)); }
+.ledger-balance-dialog form > p:not(.ledger-dialog-status) { margin: 14px 0 0; color: #76828a; font-size: 12px; }
+
+@media (max-width: 860px) {
+    .ledger-summary-grid { grid-template-columns: repeat(3, 1fr); }
+    .ledger-balance-card { grid-column: 1 / -1; }
+    .ledger-workspace { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+    .ledger-shell { padding: 19px 14px; }
+    .ledger-hero { display: grid; }
+    .ledger-month-control { width: 100%; }
+    .ledger-month-control label { flex: 1; }
+    .ledger-account-tabs { gap: 6px; }
+    .ledger-account-tabs button { min-height: 58px; padding: 10px; }
+    .ledger-account-tabs button small { display: none; }
+    .ledger-summary-grid { grid-template-columns: 1fr 1fr; }
+    .ledger-metric-card:last-child { grid-column: 1 / -1; }
+    .ledger-chart-card, .ledger-list-card { padding: 17px 14px; }
+    .ledger-transaction-row { grid-template-columns: 34px minmax(0, 1fr) auto; }
+    .ledger-transaction-row > button { grid-column: 2 / -1; justify-self: end; margin-top: -4px; }
+    .ledger-form-grid { grid-template-columns: 1fr; }
+    .ledger-field-wide { grid-column: auto; }
+}

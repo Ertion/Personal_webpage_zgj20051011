@@ -46,6 +46,83 @@ test('未知 API 不会退回首页', async () => {
     assert.equal(response.status, 404);
 });
 
+test('收支接口仅允许所有者读取', async () => {
+    const response = await worker.fetch(new Request('https://example.com/api/ledger?account=微信&month=2026-08'), {
+        ...env,
+        DB: { prepare() { throw new Error('游客请求不应访问数据库'); } }
+    });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json()).message, '仅所有者可以访问此应用');
+});
+
+test('所有者可按账户和月份读取收支流水与余额', async () => {
+    const bindings = [];
+    const database = {
+        prepare(sql) {
+            if (/FROM ledger_transactions/.test(sql)) {
+                return {
+                    bind(...values) {
+                        bindings.push(values);
+                        return { async all() { return { results: [{
+                            id: 'wechat-20', account: '微信', subcategory: '餐饮食品', note: '美宜佳',
+                            source_detail: '商户消费 · 美宜佳', direction: 'expense', amount_cents: 1100,
+                            occurred_at: '2026-08-30T20:30:08', source_status: '支付成功', updated_at: '2026-09-01T00:00:00.000Z'
+                        }] }; } };
+                    }
+                };
+            }
+            if (/FROM ledger_balances/.test(sql)) {
+                return {
+                    bind(...values) {
+                        bindings.push(values);
+                        return { async first() { return { account: '微信', month: '2026-08', balance_cents: 8800, updated_at: '2026-09-01T00:00:00.000Z' }; } };
+                    }
+                };
+            }
+            throw new Error(`未预期的 SQL: ${sql}`);
+        }
+    };
+    const response = await ownerGet('/api/ledger?account=%E5%BE%AE%E4%BF%A1&month=2026-08', { ...env, DB: database });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.transactions[0].subcategory, '餐饮食品');
+    assert.equal(data.balance.balance_cents, 8800);
+    assert.ok(data.categories.includes('资金流转'));
+    assert.deepEqual(bindings[0], ['微信', '2026-08-01T00:00:00', '2026-08-32T00:00:00']);
+});
+
+test('所有者可以编辑交易的备注、分类、金额和时间', async () => {
+    let updatedValues;
+    const existing = {
+        id: 'wechat-20', account: '微信', subcategory: '餐饮食品', note: '旧备注', source_detail: '来源',
+        direction: 'expense', amount_cents: 1100, occurred_at: '2026-08-30T20:30:08', source_key: 'wechat:20',
+        source_status: '支付成功', created_at: '2026-09-01T00:00:00.000Z', updated_at: '2026-09-01T00:00:00.000Z'
+    };
+    const database = {
+        prepare(sql) {
+            if (/SELECT \* FROM ledger_transactions/.test(sql)) {
+                return { bind(id) { assert.equal(id, 'wechat-20'); return { async first() { return existing; } }; } };
+            }
+            if (/UPDATE ledger_transactions/.test(sql)) {
+                return { bind(...values) { updatedValues = values; return { async run() { return { meta: { changes: 1 } }; } }; } };
+            }
+            throw new Error(`未预期的 SQL: ${sql}`);
+        }
+    };
+    const response = await worker.fetch(new Request('https://example.com/api/ledger/wechat-20', {
+        method: 'PATCH',
+        headers: { Origin: 'https://example.com', 'Content-Type': 'application/json', Cookie: await ownerCookie() },
+        body: JSON.stringify({
+            account: '支付宝', subcategory: '数码学习', note: '传感器', direction: 'expense',
+            amount_cents: 1250, occurred_at: '2026-08-30T21:10:00'
+        })
+    }), { ...env, DB: database });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.transaction.note, '传感器');
+    assert.deepEqual(updatedValues.slice(0, 6), ['支付宝', '数码学习', '传感器', 'expense', 1250, '2026-08-30T21:10:00']);
+});
+
 test('EhViewer 仅允许所有者读取画廊列表', async () => {
     const guestResponse = await worker.fetch(new Request('https://example.com/api/ehviewer'), env);
     assert.equal(guestResponse.status, 403);

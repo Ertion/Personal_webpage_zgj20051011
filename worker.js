@@ -17,6 +17,12 @@ const CONTENT_SECTIONS = new Set(['admin', 'blog', 'engineering', 'laboratory', 
 const CONTENT_STATUSES = new Set(['draft', 'published']);
 const EVENT_STATUSES = new Set(['planned', 'in_progress', 'completed']);
 const VISIBILITIES = new Set(['public', 'private']);
+const LEDGER_ACCOUNTS = new Set(['微信', '支付宝', '银行卡']);
+const LEDGER_CATEGORIES = new Set([
+    '餐饮食品', '日用购物', '交通出行', '数码学习',
+    '生活健康', '娱乐订阅', '人情往来', '资金流转'
+]);
+const LEDGER_DIRECTIONS = new Set(['income', 'expense', 'neutral']);
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -138,6 +144,18 @@ function validDate(value) {
         && date.getUTCDate() === day;
 }
 
+function validMonth(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}$/.test(value)) return false;
+    const month = Number(value.slice(5));
+    return month >= 1 && month <= 12;
+}
+
+function validDateTime(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(value)) return false;
+    const parsed = new Date(`${value}Z`);
+    return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 19) === value;
+}
+
 function databaseRequired(env) {
     return hasDatabase(env) ? null : json({ message: 'D1 数据库尚未绑定' }, 503);
 }
@@ -149,6 +167,15 @@ function steamDatabaseError(error) {
     }
     console.error('Steam database error', error);
     return json({ message: 'Steam 缓存暂时不可用，请稍后重试' }, 503);
+}
+
+function ledgerDatabaseError(error) {
+    const message = String(error?.message || error || '');
+    if (/no such table|ledger_transactions|ledger_balances/i.test(message)) {
+        return json({ message: '收支数据库尚未初始化，请先应用最新 D1 迁移' }, 503);
+    }
+    console.error('Ledger database error', error);
+    return json({ message: '收支数据暂时不可用，请稍后重试' }, 503);
 }
 
 function parseSteamLookup(value) {
@@ -997,6 +1024,117 @@ function eventFromBody(body, existing = {}) {
     return { value: { title, description, event_date: eventDate, status, visibility } };
 }
 
+function ledgerTransactionFromBody(body, existing = {}) {
+    const account = cleanString(body?.account, 16, existing.account || '');
+    const subcategory = cleanString(body?.subcategory, 24, existing.subcategory || '');
+    const note = typeof body?.note === 'string' ? body.note.trim().slice(0, 600) : (existing.note || '');
+    const direction = cleanString(body?.direction, 16, existing.direction || '');
+    const occurredAt = cleanString(body?.occurred_at, 19, existing.occurred_at || '');
+    const amountCents = body?.amount_cents === undefined ? Number(existing.amount_cents) : Number(body.amount_cents);
+
+    if (!LEDGER_ACCOUNTS.has(account)) return { error: '账户类型无效' };
+    if (!LEDGER_CATEGORIES.has(subcategory)) return { error: '交易小类无效' };
+    if (!LEDGER_DIRECTIONS.has(direction)) return { error: '收支类型无效' };
+    if (!Number.isSafeInteger(amountCents) || amountCents < 0 || amountCents > 100000000000) return { error: '交易金额无效' };
+    if (!validDateTime(occurredAt)) return { error: '交易时间无效' };
+    return { value: { account, subcategory, note, direction, amount_cents: amountCents, occurred_at: occurredAt } };
+}
+
+async function listLedger(request, env) {
+    const missing = databaseRequired(env);
+    if (missing) return missing;
+    const denied = await authorizePrivateApp(request, env);
+    if (denied) return denied;
+
+    const url = new URL(request.url);
+    const account = cleanString(url.searchParams.get('account'), 16);
+    const month = cleanString(url.searchParams.get('month'), 7);
+    if (!LEDGER_ACCOUNTS.has(account)) return json({ message: '账户类型无效' }, 400);
+    if (!validMonth(month)) return json({ message: '月份格式无效' }, 400);
+
+    try {
+        const [transactions, balance] = await Promise.all([
+            env.DB.prepare(`
+                SELECT id, account, subcategory, note, source_detail, direction,
+                    amount_cents, occurred_at, source_status, updated_at
+                FROM ledger_transactions
+                WHERE account = ? AND occurred_at >= ? AND occurred_at < ?
+                ORDER BY occurred_at DESC, id DESC
+                LIMIT 1000
+            `).bind(account, `${month}-01T00:00:00`, `${month}-32T00:00:00`).all(),
+            env.DB.prepare(`
+                SELECT account, month, balance_cents, updated_at
+                FROM ledger_balances WHERE account = ? AND month = ?
+            `).bind(account, month).first()
+        ]);
+        return json({
+            account,
+            month,
+            categories: Array.from(LEDGER_CATEGORIES),
+            transactions: transactions.results || [],
+            balance: balance || { account, month, balance_cents: null, updated_at: null }
+        });
+    } catch (error) {
+        return ledgerDatabaseError(error);
+    }
+}
+
+async function updateLedgerTransaction(request, id, env) {
+    const missing = databaseRequired(env);
+    if (missing) return missing;
+    const denied = await authorizeMutation(request, env);
+    if (denied) return denied;
+
+    try {
+        const existing = await env.DB.prepare('SELECT * FROM ledger_transactions WHERE id = ?').bind(id).first();
+        if (!existing) return json({ message: '交易不存在' }, 404);
+        const parsed = ledgerTransactionFromBody(await readJson(request), existing);
+        if (parsed.error) return json({ message: parsed.error }, 400);
+        const updatedAt = new Date().toISOString();
+        await env.DB.prepare(`
+            UPDATE ledger_transactions
+            SET account = ?, subcategory = ?, note = ?, direction = ?, amount_cents = ?, occurred_at = ?, updated_at = ?
+            WHERE id = ?
+        `).bind(
+            parsed.value.account, parsed.value.subcategory, parsed.value.note,
+            parsed.value.direction, parsed.value.amount_cents, parsed.value.occurred_at,
+            updatedAt, id
+        ).run();
+        return json({ transaction: { ...existing, ...parsed.value, updated_at: updatedAt } });
+    } catch (error) {
+        return ledgerDatabaseError(error);
+    }
+}
+
+async function updateLedgerBalance(request, env) {
+    const missing = databaseRequired(env);
+    if (missing) return missing;
+    const denied = await authorizeMutation(request, env);
+    if (denied) return denied;
+
+    const body = await readJson(request);
+    const account = cleanString(body?.account, 16);
+    const month = cleanString(body?.month, 7);
+    const balanceCents = body?.balance_cents === null ? null : Number(body?.balance_cents);
+    if (!LEDGER_ACCOUNTS.has(account)) return json({ message: '账户类型无效' }, 400);
+    if (!validMonth(month)) return json({ message: '月份格式无效' }, 400);
+    if (balanceCents !== null && (!Number.isSafeInteger(balanceCents) || Math.abs(balanceCents) > 100000000000)) {
+        return json({ message: '余额无效' }, 400);
+    }
+
+    const updatedAt = new Date().toISOString();
+    try {
+        await env.DB.prepare(`
+            INSERT INTO ledger_balances (account, month, balance_cents, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(account, month) DO UPDATE SET balance_cents = excluded.balance_cents, updated_at = excluded.updated_at
+        `).bind(account, month, balanceCents, updatedAt).run();
+        return json({ balance: { account, month, balance_cents: balanceCents, updated_at: updatedAt } });
+    } catch (error) {
+        return ledgerDatabaseError(error);
+    }
+}
+
 async function listContent(request, env) {
     const missing = databaseRequired(env);
     if (missing) return missing;
@@ -1335,6 +1473,23 @@ export default {
             if (denied) return denied;
             if (request.method === 'GET') return await maybeProxyEhApi(request, env) || getEhMedia(request, env);
             return methodNotAllowed('GET');
+        }
+
+        if (/^\/api\/ledger\/?$/.test(url.pathname)) {
+            if (request.method === 'GET') return listLedger(request, env);
+            return methodNotAllowed('GET');
+        }
+
+        if (/^\/api\/ledger\/balance\/?$/.test(url.pathname)) {
+            if (request.method === 'PATCH') return updateLedgerBalance(request, env);
+            return methodNotAllowed('PATCH');
+        }
+
+        const ledgerMatch = url.pathname.match(/^\/api\/ledger\/([^/]+)\/?$/);
+        if (ledgerMatch) {
+            const id = decodeURIComponent(ledgerMatch[1]);
+            if (request.method === 'PATCH') return updateLedgerTransaction(request, id, env);
+            return methodNotAllowed('PATCH');
         }
 
         if (/^\/api\/content\/?$/.test(url.pathname)) {
