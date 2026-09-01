@@ -1,0 +1,747 @@
+/* Mobile experience layer. Loaded last so the desktop design remains unchanged. */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    overflow-x: clip;
+}
+
+button,
+input,
+select,
+textarea {
+    touch-action: manipulation;
+}
+
+img,
+svg {
+    max-width: 100%;
+}
+
+@media (pointer: coarse) {
+    button,
+    .nav-item,
+    .database-item-button,
+    .guestbook-comment-button {
+        min-height: 44px;
+    }
+
+    input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+    }
+
+    .archive-app-tile:hover,
+    .nav-item:hover,
+    .database-primary:hover,
+    .steam-query-button:hover {
+        transform: none;
+    }
+}
+
+@media (max-width: 760px) {
+    :root {
+        --mobile-nav-height: 66px;
+        --mobile-edge: 10px;
+    }
+
+    html {
+        scroll-padding-top: 78px;
+        scroll-padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
+    }
+
+    body {
+        min-height: 100dvh;
+        background-attachment: scroll;
+        background-position: center top;
+        overscroll-behavior-y: contain;
+    }
+
+    body.auth-pending {
+        padding-bottom: 0;
+    }
+
+    .auth-gate {
+        align-items: start;
+        padding:
+            max(12px, env(safe-area-inset-top))
+            max(12px, env(safe-area-inset-right))
+            max(12px, env(safe-area-inset-bottom))
+            max(12px, env(safe-area-inset-left));
+        overscroll-behavior: contain;
+    }
+
+    .auth-card {
+        width: 100%;
+        min-height: 0;
+        grid-template-columns: 1fr;
+        border-radius: 20px;
+    }
+
+    .auth-brand {
+        min-height: 118px;
+        padding: 24px;
+    }
+
+    .auth-logo {
+        font-size: 28px;
+    }
+
+    .auth-brand-copy {
+        margin-top: 6px;
+        font-size: 12px;
+    }
+
+    .auth-quote {
+        display: none;
+    }
+
+    .auth-panel {
+        padding: 26px 22px calc(24px + env(safe-area-inset-bottom));
+    }
+
+    .auth-title {
+        font-size: 27px;
+    }
+
+    .auth-description {
+        margin: 10px 0 18px;
+        line-height: 1.65;
+    }
+
+    .auth-field input,
+    .database-field input,
+    .database-field textarea,
+    .database-field select,
+    .steam-query-input,
+    .ehviewer-search input,
+    .guestbook-fields input,
+    .guestbook-fields textarea,
+    .ledger-field input,
+    .ledger-field select {
+        font-size: 16px;
+    }
+
+    .app-shell {
+        width: 100%;
+        margin: 0;
+        padding:
+            max(8px, env(safe-area-inset-top))
+            max(var(--mobile-edge), env(safe-area-inset-right))
+            calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + 14px)
+            max(var(--mobile-edge), env(safe-area-inset-left));
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    .sidebar {
+        position: sticky;
+        z-index: 40;
+        top: max(6px, env(safe-area-inset-top));
+        left: auto;
+        display: grid;
+        width: 100%;
+        height: auto;
+        min-height: 58px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px 9px 14px;
+        overflow: visible;
+        border-radius: 16px;
+        box-shadow: 0 10px 28px rgba(6, 18, 30, 0.28);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    .brand {
+        display: block;
+        min-width: 0;
+        padding: 0;
+    }
+
+    .brand h1 {
+        overflow: hidden;
+        font-size: 20px;
+        line-height: 1.15;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .brand p {
+        margin: 3px 0 0;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+    }
+
+    .brand p::before,
+    .sidebar-footer {
+        display: none;
+    }
+
+    .session-panel {
+        min-width: 0;
+        gap: 7px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .session-mode {
+        gap: 6px;
+        font-size: 11px;
+        white-space: nowrap;
+    }
+
+    .session-button {
+        min-height: 40px;
+        padding: 0 12px;
+        border-radius: 10px;
+        font-size: 12px;
+    }
+
+    .nav-list {
+        position: fixed;
+        z-index: 100;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: grid;
+        height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 2px;
+        margin: 0;
+        padding:
+            5px
+            max(4px, env(safe-area-inset-right))
+            calc(5px + env(safe-area-inset-bottom))
+            max(4px, env(safe-area-inset-left));
+        overflow: visible;
+        border-top: 1px solid rgba(214, 229, 243, 0.22);
+        background: rgba(4, 15, 25, 0.97);
+        box-shadow: 0 -12px 28px rgba(4, 15, 25, 0.24);
+    }
+
+    .nav-item {
+        min-width: 0;
+        min-height: 54px;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+        padding: 4px 1px;
+        border-radius: 10px;
+        font-size: 10px;
+        line-height: 1.05;
+    }
+
+    .nav-item:hover,
+    .nav-item:focus-visible,
+    .nav-item.active {
+        transform: none;
+    }
+
+    .nav-item.active {
+        color: #8bb8ff;
+        background: rgba(71, 127, 196, 0.28);
+    }
+
+    .nav-icon {
+        width: auto;
+        flex: 0 0 auto;
+        font-size: 19px;
+        line-height: 1;
+    }
+
+    main,
+    .page-view {
+        min-width: 0;
+        gap: 10px;
+    }
+
+    main {
+        grid-column: auto;
+    }
+
+    .card {
+        border-radius: 16px;
+        box-shadow: 0 12px 30px rgba(18, 42, 64, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.42);
+        backdrop-filter: blur(8px) saturate(108%);
+        -webkit-backdrop-filter: blur(8px) saturate(108%);
+    }
+
+    .content-card {
+        min-height: 0;
+        padding: 24px 18px;
+    }
+
+    .content-title {
+        font-size: clamp(27px, 9vw, 34px);
+    }
+
+    .content-lead {
+        margin: 9px 0 22px;
+        line-height: 1.65;
+    }
+
+    .profile-card {
+        min-height: 0;
+        grid-template-columns: 96px minmax(0, 1fr);
+        justify-items: stretch;
+        align-items: start;
+        gap: 16px;
+        padding: 20px 16px;
+        text-align: left;
+    }
+
+    .avatar-wrap {
+        width: 96px;
+        padding: 5px;
+    }
+
+    .profile-content h2 {
+        margin-bottom: 9px;
+        font-size: clamp(22px, 7vw, 28px);
+    }
+
+    .profile-rule {
+        margin-bottom: 10px;
+    }
+
+    .detail-list {
+        width: 100%;
+        margin: 0;
+        gap: 8px;
+        font-size: 13px;
+        text-align: left;
+    }
+
+    .detail-row {
+        grid-template-columns: 18px 37px minmax(0, 1fr);
+        gap: 5px;
+    }
+
+    .detail-row > span:nth-child(3) {
+        display: none;
+    }
+
+    .detail-row .detail-icon {
+        font-size: 15px;
+    }
+
+    .tags {
+        gap: 6px;
+        justify-content: flex-start;
+        margin-top: 14px;
+    }
+
+    .tag {
+        padding: 6px 8px;
+        font-size: 10px;
+    }
+
+    .archive-launcher {
+        min-height: 0;
+        padding: 22px 16px 34px;
+    }
+
+    .archive-app-groups {
+        gap: 14px;
+        margin-top: 18px;
+    }
+
+    .archive-app-group {
+        padding: 14px 10px 11px;
+        border-radius: 16px;
+    }
+
+    .archive-app-grid {
+        grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+        gap: 8px;
+    }
+
+    .archive-app-tile {
+        gap: 8px;
+        padding: 7px 3px;
+        border-radius: 16px;
+    }
+
+    .archive-app-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+    }
+
+    .archive-app-icon svg,
+    .archive-app-icon-ai svg,
+    .archive-app-icon-ledger svg,
+    .archive-app-icon-ehviewer svg,
+    .archive-app-icon-guestbook svg {
+        width: 52px;
+        height: 52px;
+    }
+
+    .archive-launcher-dock {
+        right: 16px;
+        bottom: 12px;
+        left: 16px;
+        height: 18px;
+        padding-top: 7px;
+    }
+
+    .archive-app-toolbar {
+        position: sticky;
+        z-index: 30;
+        top: 74px;
+        min-height: 60px;
+        gap: 9px;
+        padding: 8px 10px;
+    }
+
+    .archive-app-back {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+    }
+
+    .archive-app-toolbar-icon {
+        width: 38px;
+        height: 38px;
+        flex-basis: 38px;
+    }
+
+    .archive-app-empty {
+        min-height: 0;
+        gap: 14px;
+        padding: 22px 16px;
+    }
+
+    .archive-app-empty-mark {
+        width: 56px;
+        height: 56px;
+        flex-basis: 56px;
+        border-radius: 17px;
+    }
+
+    .calendar-head {
+        min-height: 0;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .calendar-title {
+        font-size: 19px;
+    }
+
+    .calendar-controls {
+        width: 100%;
+        gap: 5px;
+    }
+
+    .icon-button,
+    .today-button {
+        height: 44px;
+    }
+
+    .icon-button {
+        width: 44px;
+    }
+
+    #monthLabel {
+        min-width: 0;
+        flex: 1;
+        font-size: 16px;
+    }
+
+    .weekdays {
+        min-height: 38px;
+        font-size: 11px;
+    }
+
+    .calendar-day {
+        min-height: 48px;
+        padding-top: 9px;
+        font-size: 13px;
+        touch-action: manipulation;
+    }
+
+    .calendar-day.today {
+        font-size: 15px;
+    }
+
+    .calendar-event-count {
+        right: 4px;
+        bottom: 4px;
+        min-width: 17px;
+        height: 17px;
+        padding: 0 4px;
+        font-size: 9px;
+        line-height: 17px;
+    }
+
+    .database-toolbar,
+    .event-card-head,
+    .database-item-head {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .database-toolbar .database-primary,
+    .event-card-head .database-primary {
+        width: 100%;
+    }
+
+    .database-item {
+        padding: 16px;
+    }
+
+    .database-item-actions {
+        width: 100%;
+        align-self: stretch;
+        flex-wrap: wrap;
+    }
+
+    .database-item-actions button {
+        flex: 1;
+    }
+
+    .database-dialog,
+    .ledger-dialog,
+    .ledger-balance-dialog {
+        width: 100%;
+        max-width: none;
+        max-height: calc(100dvh - 10px);
+        margin: auto 0 0;
+        overflow: auto;
+        border-width: 1px 0 0;
+        border-radius: 22px 22px 0 0;
+    }
+
+    .database-form,
+    .ledger-dialog form {
+        padding: 20px 16px calc(18px + env(safe-area-inset-bottom));
+    }
+
+    .database-form-actions,
+    .ledger-dialog footer {
+        position: sticky;
+        bottom: 0;
+        margin-inline: -4px;
+        padding-top: 10px;
+        padding-bottom: env(safe-area-inset-bottom);
+        background: inherit;
+    }
+
+    .database-form-actions > button,
+    .ledger-dialog footer > button {
+        min-height: 44px;
+        flex: 1;
+    }
+
+    .steam-card,
+    .ehviewer-card,
+    .guestbook-card,
+    .ledger-shell,
+    .event-card {
+        padding: 22px 16px;
+    }
+
+    .steam-head,
+    .ehviewer-head,
+    .guestbook-head {
+        gap: 12px;
+    }
+
+    .steam-query-button,
+    .ehviewer-primary,
+    .ehviewer-secondary,
+    .guestbook-submit {
+        min-height: 46px;
+    }
+
+    .steam-game-row {
+        min-height: 64px;
+    }
+
+    .steam-zero-toggle,
+    .guestbook-visibility-toggle {
+        min-height: 36px;
+    }
+
+    .ehviewer-search {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ehviewer-search input {
+        grid-column: 1 / -1;
+        height: 48px;
+    }
+
+    .ehviewer-gallery-card {
+        content-visibility: auto;
+        contain-intrinsic-size: 260px;
+    }
+
+    .ehviewer-reader {
+        width: 100vw;
+        height: 100dvh;
+        max-width: none;
+        max-height: none;
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+    }
+
+    .ehviewer-reader-controls {
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    }
+
+    .guestbook-composer {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 15px;
+    }
+
+    .guestbook-thread {
+        padding: 14px;
+    }
+
+    .guestbook-comment-head {
+        flex-wrap: wrap;
+        gap: 5px 8px;
+    }
+
+    .guestbook-time {
+        flex-basis: 100%;
+        margin-left: 0;
+    }
+
+    .ledger-hero {
+        gap: 14px;
+    }
+
+    .ledger-month-control button {
+        width: 46px;
+        min-height: 46px;
+    }
+
+    .ledger-account-tabs {
+        overflow-x: auto;
+        grid-template-columns: repeat(3, minmax(96px, 1fr));
+        padding-bottom: 3px;
+        scroll-snap-type: x proximity;
+    }
+
+    .ledger-account-tabs button {
+        scroll-snap-align: start;
+    }
+
+    .ledger-summary-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ledger-balance-card {
+        grid-column: 1 / -1;
+    }
+
+    .ledger-transaction-row > button {
+        min-height: 38px;
+        padding-inline: 12px;
+    }
+}
+
+@media (max-width: 380px) {
+    .brand p,
+    .session-mode > span:last-child {
+        display: none;
+    }
+
+    .profile-card {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 13px;
+        text-align: center;
+    }
+
+    .avatar-wrap {
+        width: 92px;
+    }
+
+    .profile-content {
+        width: 100%;
+    }
+
+    .profile-rule {
+        margin-inline: auto;
+    }
+
+    .tags {
+        justify-content: center;
+    }
+
+    .archive-app-group-head p {
+        display: none;
+    }
+
+    .calendar-head {
+        padding: 14px 12px;
+    }
+
+    .today-button {
+        min-width: 52px;
+        padding-inline: 8px;
+    }
+
+    .ledger-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ledger-metric-card:last-child {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 760px) and (max-height: 500px) and (orientation: landscape) {
+    :root {
+        --mobile-nav-height: 58px;
+    }
+
+    .auth-gate {
+        display: block;
+    }
+
+    .auth-brand {
+        display: none;
+    }
+
+    .auth-panel {
+        padding-block: 20px;
+    }
+
+    .sidebar {
+        position: relative;
+        top: auto;
+        min-height: 50px;
+        padding-block: 6px;
+    }
+
+    .brand p {
+        display: none;
+    }
+
+    .nav-list {
+        height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
+        padding-top: 3px;
+    }
+
+    .nav-item {
+        min-height: 48px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ledger-account-tabs {
+        scroll-behavior: auto;
+    }
+}
