@@ -23,6 +23,8 @@ const LEDGER_CATEGORIES = new Set([
     '生活健康', '娱乐订阅', '人情往来', '资金流转'
 ]);
 const LEDGER_DIRECTIONS = new Set(['income', 'expense', 'neutral']);
+const GUESTBOOK_WINDOW_SECONDS = 10 * 60;
+const GUESTBOOK_POST_LIMIT = 8;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -176,6 +178,15 @@ function ledgerDatabaseError(error) {
     }
     console.error('Ledger database error', error);
     return json({ message: '收支数据暂时不可用，请稍后重试' }, 503);
+}
+
+function guestbookDatabaseError(error) {
+    const message = String(error?.message || error || '');
+    if (/no such table|guestbook_comments|guestbook_rate_limits/i.test(message)) {
+        return json({ message: '留言板数据库尚未初始化，请先应用最新 D1 迁移' }, 503);
+    }
+    console.error('Guestbook database error', error);
+    return json({ message: '留言板暂时不可用，请稍后重试' }, 503);
 }
 
 function parseSteamLookup(value) {
@@ -1135,6 +1146,130 @@ async function updateLedgerBalance(request, env) {
     }
 }
 
+function guestbookCommentFromBody(body, owner = false) {
+    const message = cleanString(body?.message, 1000);
+    const parentId = body?.parent_id === null || body?.parent_id === undefined || body?.parent_id === ''
+        ? null
+        : cleanString(body.parent_id, 80);
+    const visitorId = owner ? 'owner' : cleanString(body?.visitor_id, 80);
+    const authorName = owner ? '站点所有者' : cleanString(body?.author_name, 32, '匿名访客');
+
+    if (!message) return { error: '留言内容不能为空' };
+    if (!owner && !/^[A-Za-z0-9_-]{16,80}$/.test(visitorId)) return { error: '访客标识无效，请刷新页面后重试' };
+    if (body?.parent_id && !parentId) return { error: '回复目标无效' };
+    return {
+        value: {
+            parent_id: parentId,
+            visitor_id: visitorId,
+            author_name: authorName || '匿名访客',
+            role: owner ? 'owner' : 'guest',
+            message
+        }
+    };
+}
+
+async function consumeGuestbookRateLimit(request, env, visitorId) {
+    const ip = cleanString(request.headers.get('CF-Connecting-IP'), 80, 'unknown');
+    const clientKey = bytesToBase64Url(await digest(`${ip}|${visitorId}`));
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - GUESTBOOK_WINDOW_SECONDS * 1000);
+    const existing = await env.DB.prepare(`
+        SELECT window_started_at, post_count
+        FROM guestbook_rate_limits WHERE client_key = ?
+    `).bind(clientKey).first();
+
+    if (existing && new Date(existing.window_started_at) > cutoff && Number(existing.post_count) >= GUESTBOOK_POST_LIMIT) {
+        return json({ message: '留言有点频繁，请稍等几分钟再试' }, 429);
+    }
+
+    const keepWindow = existing && new Date(existing.window_started_at) > cutoff;
+    await env.DB.prepare(`
+        INSERT INTO guestbook_rate_limits (client_key, window_started_at, post_count)
+        VALUES (?, ?, ?)
+        ON CONFLICT(client_key) DO UPDATE SET
+            window_started_at = excluded.window_started_at,
+            post_count = excluded.post_count
+    `).bind(
+        clientKey,
+        keepWindow ? existing.window_started_at : now.toISOString(),
+        keepWindow ? Number(existing.post_count) + 1 : 1
+    ).run();
+    return null;
+}
+
+async function listGuestbook(request, env) {
+    const missing = databaseRequired(env);
+    if (missing) return missing;
+    const visitorId = cleanString(new URL(request.url).searchParams.get('visitor'), 80);
+    try {
+        const result = await env.DB.prepare(`
+            SELECT id, parent_id, author_name, role, message, created_at,
+                CASE WHEN visitor_id = ? THEN 1 ELSE 0 END AS is_mine
+            FROM guestbook_comments
+            ORDER BY created_at ASC
+            LIMIT 300
+        `).bind(visitorId).all();
+        return json({ comments: result.results || [] });
+    } catch (error) {
+        return guestbookDatabaseError(error);
+    }
+}
+
+async function createGuestbookComment(request, env) {
+    const missing = databaseRequired(env);
+    if (missing) return missing;
+    if (!isSameOrigin(request)) return json({ message: '请求来源无效' }, 403);
+
+    const owner = await isOwner(request, env);
+    const parsed = guestbookCommentFromBody(await readJson(request), owner);
+    if (parsed.error) return json({ message: parsed.error }, 400);
+
+    try {
+        if (parsed.value.parent_id) {
+            const parent = await env.DB.prepare('SELECT id FROM guestbook_comments WHERE id = ?')
+                .bind(parsed.value.parent_id).first();
+            if (!parent) return json({ message: '要回复的留言已不存在' }, 404);
+        }
+
+        if (!owner) {
+            const limited = await consumeGuestbookRateLimit(request, env, parsed.value.visitor_id);
+            if (limited) return limited;
+        }
+
+        const comment = {
+            id: crypto.randomUUID(),
+            ...parsed.value,
+            created_at: new Date().toISOString(),
+            is_mine: owner ? 0 : 1
+        };
+        await env.DB.prepare(`
+            INSERT INTO guestbook_comments
+            (id, parent_id, visitor_id, author_name, role, message, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+            comment.id, comment.parent_id, comment.visitor_id, comment.author_name,
+            comment.role, comment.message, comment.created_at
+        ).run();
+        const { visitor_id, ...publicComment } = comment;
+        return json({ comment: publicComment }, 201);
+    } catch (error) {
+        return guestbookDatabaseError(error);
+    }
+}
+
+async function deleteGuestbookComment(request, id, env) {
+    const missing = databaseRequired(env);
+    if (missing) return missing;
+    const denied = await authorizeMutation(request, env);
+    if (denied) return denied;
+    try {
+        const result = await env.DB.prepare('DELETE FROM guestbook_comments WHERE id = ?').bind(id).run();
+        return result.meta?.changes ? json({ deleted: true }) : json({ message: '留言不存在' }, 404);
+    } catch (error) {
+        return guestbookDatabaseError(error);
+    }
+}
+
 async function listContent(request, env) {
     const missing = databaseRequired(env);
     if (missing) return missing;
@@ -1490,6 +1625,19 @@ export default {
             const id = decodeURIComponent(ledgerMatch[1]);
             if (request.method === 'PATCH') return updateLedgerTransaction(request, id, env);
             return methodNotAllowed('PATCH');
+        }
+
+        if (/^\/api\/guestbook\/?$/.test(url.pathname)) {
+            if (request.method === 'GET') return listGuestbook(request, env);
+            if (request.method === 'POST') return createGuestbookComment(request, env);
+            return methodNotAllowed('GET, POST');
+        }
+
+        const guestbookMatch = url.pathname.match(/^\/api\/guestbook\/([^/]+)\/?$/);
+        if (guestbookMatch) {
+            const id = decodeURIComponent(guestbookMatch[1]);
+            if (request.method === 'DELETE') return deleteGuestbookComment(request, id, env);
+            return methodNotAllowed('DELETE');
         }
 
         if (/^\/api\/content\/?$/.test(url.pathname)) {

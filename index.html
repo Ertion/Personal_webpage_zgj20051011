@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="steam-ui.css">
     <link rel="stylesheet" href="ehviewer-ui.css">
     <link rel="stylesheet" href="archive-apps.css">
+    <link rel="stylesheet" href="guestbook-ui.css">
     <link rel="stylesheet" href="ledger-ui.css">
     <style>
         :root {
@@ -643,6 +644,15 @@
                                 </span>
                                 <span class="archive-app-name">AI</span>
                             </button>
+                            <button class="archive-app-tile" type="button" data-archive-app="guestbook" aria-controls="archiveGuestbookPanel">
+                                <span class="archive-app-icon archive-app-icon-guestbook" aria-hidden="true">
+                                    <svg viewBox="0 0 64 64" focusable="false">
+                                        <path d="M14 15h36v29H29l-10 7v-7h-5z"></path>
+                                        <path d="M23 25h18M23 33h12"></path>
+                                    </svg>
+                                </span>
+                                <span class="archive-app-name">留言板</span>
+                            </button>
                         </div>
                     </section>
 
@@ -752,6 +762,65 @@
                         <p class="archive-app-empty-kicker">AI Workspace</p>
                         <h2 id="aiAppHeading">AI 应用</h2>
                         <p>公开应用入口已创建，功能内容正在准备中。</p>
+                    </div>
+                </section>
+            </div>
+
+            <div class="archive-app-panel" id="archiveGuestbookPanel" data-archive-app-panel="guestbook" hidden>
+                <header class="archive-app-toolbar card">
+                    <button class="archive-app-back" type="button" data-archive-app-back aria-label="返回个人应用桌面">←</button>
+                    <span class="archive-app-toolbar-icon archive-app-toolbar-icon-guestbook" aria-hidden="true">留</span>
+                    <div>
+                        <p>Public App</p>
+                        <h2>留言板</h2>
+                    </div>
+                </header>
+
+                <section class="guestbook-card card" id="guestbook" aria-labelledby="guestbookHeading">
+                    <header class="guestbook-head">
+                        <div>
+                            <p class="guestbook-kicker">Guestbook · Open Conversation</p>
+                            <h2 id="guestbookHeading">来坐坐，留句话</h2>
+                            <p>写下想说的话，也可以回复其他访客。名称选填，不填就以“匿名访客”和大家见面。</p>
+                        </div>
+                        <span class="guestbook-count" id="guestbookCount" aria-live="polite">0 条对话</span>
+                    </header>
+
+                    <form class="guestbook-composer" id="guestbookForm">
+                        <div class="guestbook-replying" id="guestbookReplying" hidden>
+                            <span>正在回复 <strong id="guestbookReplyName"></strong></span>
+                            <button type="button" id="guestbookCancelReply">取消</button>
+                        </div>
+                        <div class="guestbook-fields">
+                            <label class="guestbook-name-field" for="guestbookName">
+                                <span>你的名称 <small>选填</small></span>
+                                <input id="guestbookName" name="name" maxlength="32" autocomplete="nickname" placeholder="匿名访客">
+                            </label>
+                            <label class="guestbook-message-field" for="guestbookMessage">
+                                <span>留言内容</span>
+                                <textarea id="guestbookMessage" name="message" maxlength="1000" rows="4" placeholder="在这里写下你的留言……" required></textarea>
+                            </label>
+                        </div>
+                        <footer class="guestbook-composer-foot">
+                            <span id="guestbookCharacterCount">0 / 1000</span>
+                            <button class="guestbook-submit" id="guestbookSubmit" type="submit">发布留言</button>
+                        </footer>
+                        <p class="guestbook-status" id="guestbookStatus" role="status" aria-live="polite"></p>
+                    </form>
+
+                    <div class="guestbook-stream-head">
+                        <div>
+                            <h3>访客对话</h3>
+                            <p>回复会显示在原留言下方</p>
+                        </div>
+                        <label class="guestbook-visibility-toggle">
+                            <input id="guestbookShowOthers" type="checkbox" checked>
+                            <span>查看其他人的留言</span>
+                        </label>
+                    </div>
+
+                    <div class="guestbook-list" id="guestbookList" aria-live="polite">
+                        <p class="guestbook-empty">打开留言板后，将加载大家的留言。</p>
                     </div>
                 </section>
             </div>
@@ -1338,6 +1407,7 @@
     <script src="database-ui.js"></script>
     <script src="steam-ui.js"></script>
     <script src="ehviewer-ui.js"></script>
+    <script src="guestbook-ui.js"></script>
     <script src="archive-apps.js"></script>
     <script src="ledger-ui.js"></script>
 </body>

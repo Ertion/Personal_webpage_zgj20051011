@@ -12,6 +12,7 @@ test('home archive area separates public and owner-only apps with accessible pan
     assert.match(html, /id="archiveLauncher"/);
     assert.match(html, /data-archive-app="steam"[^>]+aria-controls="archiveSteamPanel"/);
     assert.match(html, /data-archive-app="ai"[^>]+aria-controls="archiveAiPanel"/);
+    assert.match(html, /data-archive-app="guestbook"[^>]+aria-controls="archiveGuestbookPanel"/);
     assert.match(html, /data-archive-app="ehviewer"[^>]+data-archive-private[^>]+aria-controls="archiveEhviewerPanel"/);
     assert.match(html, /data-archive-app="ledger"[^>]+data-archive-private[^>]+aria-controls="archiveLedgerPanel"/);
     assert.match(html, /id="publicAppsHeading">公开应用</);
@@ -19,9 +20,10 @@ test('home archive area separates public and owner-only apps with accessible pan
     assert.match(html, /archive-app-group-private[^>]+data-owner-only hidden/);
     assert.match(html, /id="archiveSteamPanel"[^>]+data-archive-app-panel="steam" hidden/);
     assert.match(html, /id="archiveAiPanel"[^>]+data-archive-app-panel="ai" hidden/);
+    assert.match(html, /id="archiveGuestbookPanel"[^>]+data-archive-app-panel="guestbook" hidden/);
     assert.match(html, /id="archiveEhviewerPanel"[^>]+data-archive-app-panel="ehviewer" hidden/);
     assert.match(html, /id="archiveLedgerPanel"[^>]+data-archive-app-panel="ledger"[^>]+data-archive-private hidden/);
-    assert.equal((html.match(/data-archive-app-back/g) || []).length, 4);
+    assert.equal((html.match(/data-archive-app-back/g) || []).length, 5);
 });
 
 test('archive apps load their remote data only after the matching app opens', async () => {
