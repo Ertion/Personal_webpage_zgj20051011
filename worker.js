@@ -1153,9 +1153,11 @@ function guestbookCommentFromBody(body, owner = false) {
         : cleanString(body.parent_id, 80);
     const visitorId = owner ? 'owner' : cleanString(body?.visitor_id, 80);
     const authorName = owner ? '站点所有者' : cleanString(body?.author_name, 32, '匿名访客');
+    const requestId = cleanString(body?.request_id, 80);
 
     if (!message) return { error: '留言内容不能为空' };
     if (!owner && !/^[A-Za-z0-9_-]{16,80}$/.test(visitorId)) return { error: '访客标识无效，请刷新页面后重试' };
+    if (requestId && !/^[A-Za-z0-9_-]{16,80}$/.test(requestId)) return { error: '留言请求标识无效' };
     if (body?.parent_id && !parentId) return { error: '回复目标无效' };
     return {
         value: {
@@ -1163,7 +1165,8 @@ function guestbookCommentFromBody(body, owner = false) {
             visitor_id: visitorId,
             author_name: authorName || '匿名访客',
             role: owner ? 'owner' : 'guest',
-            message
+            message,
+            request_id: requestId || null
         }
     };
 }
@@ -1225,6 +1228,14 @@ async function createGuestbookComment(request, env) {
     if (parsed.error) return json({ message: parsed.error }, 400);
 
     try {
+        if (parsed.value.request_id) {
+            const existing = await env.DB.prepare(`
+                SELECT id, parent_id, author_name, role, message, created_at,
+                    CASE WHEN visitor_id = ? THEN 1 ELSE 0 END AS is_mine
+                FROM guestbook_comments WHERE id = ?
+            `).bind(parsed.value.visitor_id, parsed.value.request_id).first();
+            if (existing) return json({ comment: existing });
+        }
         if (parsed.value.parent_id) {
             const parent = await env.DB.prepare('SELECT id FROM guestbook_comments WHERE id = ?')
                 .bind(parsed.value.parent_id).first();
@@ -1237,20 +1248,28 @@ async function createGuestbookComment(request, env) {
         }
 
         const comment = {
-            id: crypto.randomUUID(),
+            id: parsed.value.request_id || crypto.randomUUID(),
             ...parsed.value,
             created_at: new Date().toISOString(),
             is_mine: owner ? 0 : 1
         };
-        await env.DB.prepare(`
-            INSERT INTO guestbook_comments
+        const insertResult = await env.DB.prepare(`
+            INSERT OR IGNORE INTO guestbook_comments
             (id, parent_id, visitor_id, author_name, role, message, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         `).bind(
             comment.id, comment.parent_id, comment.visitor_id, comment.author_name,
             comment.role, comment.message, comment.created_at
         ).run();
-        const { visitor_id, ...publicComment } = comment;
+        if (!insertResult.meta?.changes) {
+            const existing = await env.DB.prepare(`
+                SELECT id, parent_id, author_name, role, message, created_at,
+                    CASE WHEN visitor_id = ? THEN 1 ELSE 0 END AS is_mine
+                FROM guestbook_comments WHERE id = ?
+            `).bind(parsed.value.visitor_id, comment.id).first();
+            if (existing) return json({ comment: existing });
+        }
+        const { visitor_id, request_id, ...publicComment } = comment;
         return json({ comment: publicComment }, 201);
     } catch (error) {
         return guestbookDatabaseError(error);
@@ -1264,7 +1283,7 @@ async function deleteGuestbookComment(request, id, env) {
     if (denied) return denied;
     try {
         const result = await env.DB.prepare('DELETE FROM guestbook_comments WHERE id = ?').bind(id).run();
-        return result.meta?.changes ? json({ deleted: true }) : json({ message: '留言不存在' }, 404);
+        return json({ deleted: true });
     } catch (error) {
         return guestbookDatabaseError(error);
     }

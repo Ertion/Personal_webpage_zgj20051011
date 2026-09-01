@@ -31,9 +31,12 @@ test('留言板作为第三个公开应用并加载独立交互资源', async ()
     assert.match(html, /data-archive-app="guestbook"/);
     assert.match(html, /id="guestbookShowOthers"[^>]+checked/);
     assert.match(html, /id="guestbookName"[^>]+placeholder="匿名访客"/);
-    assert.match(html, /src="guestbook-ui\.js"/);
+    assert.match(html, /src="guestbook-ui\.js\?v=20260901-2"/);
     assert.match(script, /event\.detail\?\.app === 'guestbook'/);
     assert.match(script, /textContent = comment\.message/);
+    assert.match(script, /loadComments\(true, true\)/);
+    assert.match(script, /window\.setInterval/);
+    assert.match(script, /留言已保存，网络恢复后会自动同步完整列表/);
     assert.match(css, /guestbook-owner-tag/);
     assert.match(migration, /REFERENCES guestbook_comments\(id\) ON DELETE CASCADE/);
 });
@@ -42,13 +45,16 @@ test('游客可以匿名发布留言，接口记录访客身份但不会向前�
     const calls = [];
     const database = {
         prepare(sql) {
+            if (/FROM guestbook_comments WHERE id = \?/.test(sql)) {
+                return { bind() { return { async first() { return null; } }; } };
+            }
             if (/SELECT window_started_at/.test(sql)) {
                 return { bind() { return { async first() { return null; } }; } };
             }
             if (/INSERT INTO guestbook_rate_limits/.test(sql)) {
                 return { bind(...values) { calls.push(['rate', values]); return { async run() { return { success: true }; } }; } };
             }
-            if (/INSERT INTO guestbook_comments/.test(sql)) {
+            if (/INSERT(?: OR IGNORE)? INTO guestbook_comments/.test(sql)) {
                 return { bind(...values) { calls.push(['insert', values]); return { async run() { return { meta: { changes: 1 } }; } }; } };
             }
             throw new Error(`未预期的 SQL: ${sql}`);
@@ -57,7 +63,7 @@ test('游客可以匿名发布留言，接口记录访客身份但不会向前�
     const response = await worker.fetch(new Request('https://example.com/api/guestbook', {
         method: 'POST',
         headers: { Origin: 'https://example.com', 'Content-Type': 'application/json', 'CF-Connecting-IP': '203.0.113.9' },
-        body: JSON.stringify({ visitor_id: 'visitor_1234567890', author_name: '', message: '你好，世界！' })
+        body: JSON.stringify({ request_id: 'request_1234567890', visitor_id: 'visitor_1234567890', author_name: '', message: '你好，世界！' })
     }), { ...env, DB: database });
     const data = await response.json();
     assert.equal(response.status, 201);
@@ -65,7 +71,42 @@ test('游客可以匿名发布留言，接口记录访客身份但不会向前�
     assert.equal(data.comment.role, 'guest');
     assert.equal(data.comment.message, '你好，世界！');
     assert.equal('visitor_id' in data.comment, false);
+    assert.equal(data.comment.id, 'request_1234567890');
     assert.equal(calls.find(([kind]) => kind === 'insert')[1][2], 'visitor_1234567890');
+});
+
+test('网络重试使用同一请求标识时不会重复创建留言', async () => {
+    let writes = 0;
+    const database = {
+        prepare(sql) {
+            if (/FROM guestbook_comments WHERE id = \?/.test(sql)) {
+                return {
+                    bind(visitorId, requestId) {
+                        assert.equal(visitorId, 'visitor_1234567890');
+                        assert.equal(requestId, 'request_retry_123456');
+                        return { async first() { return {
+                            id: requestId, parent_id: null, author_name: '小林', role: 'guest',
+                            message: '已经保存', created_at: '2026-09-01T12:00:00.000Z', is_mine: 1
+                        }; } };
+                    }
+                };
+            }
+            writes += 1;
+            throw new Error(`重试不应再次写入: ${sql}`);
+        }
+    };
+    const response = await worker.fetch(new Request('https://example.com/api/guestbook', {
+        method: 'POST',
+        headers: { Origin: 'https://example.com', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            request_id: 'request_retry_123456', visitor_id: 'visitor_1234567890',
+            author_name: '小林', message: '已经保存'
+        })
+    }), { ...env, DB: database });
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.comment.id, 'request_retry_123456');
+    assert.equal(writes, 0);
 });
 
 test('留言列表标记当前访客自己的留言并保留回复关系', async () => {
@@ -99,7 +140,7 @@ test('所有者回复自动带所有者身份，且只有所有者可以删除�
             if (/SELECT id FROM guestbook_comments/.test(sql)) {
                 return { bind(id) { assert.equal(id, 'root-1'); return { async first() { return { id }; } }; } };
             }
-            if (/INSERT INTO guestbook_comments/.test(sql)) {
+            if (/INSERT(?: OR IGNORE)? INTO guestbook_comments/.test(sql)) {
                 return { bind(...values) { inserted.push(values); return { async run() { return { meta: { changes: 1 } }; } }; } };
             }
             if (/DELETE FROM guestbook_comments/.test(sql)) {
