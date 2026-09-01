@@ -1,8 +1,8 @@
 .archive-launcher {
     position: relative;
     isolation: isolate;
-    min-height: 330px;
-    padding: 28px 34px 24px;
+    min-height: 500px;
+    padding: 28px 34px 42px;
     overflow: hidden;
     background:
         radial-gradient(circle at 82% 18%, rgba(114, 82, 181, 0.24), transparent 30%),
@@ -68,12 +68,63 @@
 .archive-launcher-status i:nth-child(2) { height: 7px; }
 .archive-launcher-status i:nth-child(3) { height: 10px; }
 
+.archive-app-groups {
+    display: grid;
+    gap: 24px;
+    margin-top: 28px;
+}
+
+.archive-app-group {
+    padding: 18px 20px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.62);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.28);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.44);
+}
+
+.archive-app-group[hidden] { display: none; }
+
+.archive-app-group-private { background: rgba(41, 49, 67, 0.08); }
+
+.archive-app-group-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.archive-app-group-head h3 {
+    margin: 0;
+    color: #1d3046;
+    font-family: Georgia, "Noto Serif SC", "Songti SC", serif;
+    font-size: 17px;
+}
+
+.archive-app-group-head p {
+    margin: 4px 0 0;
+    color: #708197;
+    font-size: 11px;
+}
+
+.archive-access-badge {
+    padding: 4px 8px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.archive-access-public { color: #2f78a8; background: rgba(83, 165, 211, 0.09); }
+.archive-access-private { color: #76538f; background: rgba(130, 88, 158, 0.09); }
+
 .archive-app-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(96px, 128px));
     justify-content: start;
-    gap: 30px 42px;
-    margin-top: 44px;
+    gap: 16px 24px;
+    margin-top: 14px;
 }
 
 .archive-app-tile {
@@ -154,6 +205,27 @@
     background: #fff8ef;
     font-size: 9px;
     font-weight: 900;
+}
+
+.archive-app-icon-ai {
+    color: #fff;
+    background: linear-gradient(145deg, #28a5a6, #17646f);
+}
+
+.archive-app-icon-ai svg,
+.archive-app-icon-ledger svg {
+    width: 58px;
+    height: 58px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.archive-app-icon-ledger {
+    color: #fff;
+    background: linear-gradient(145deg, #c88642, #7a4828);
 }
 
 .archive-app-name {
@@ -252,17 +324,56 @@
 
 .archive-app-toolbar-icon-steam { background: linear-gradient(145deg, #173f6b, #081a2c); }
 .archive-app-toolbar-icon-ehviewer { background: linear-gradient(145deg, #9468bd, #4c2e69); }
+.archive-app-toolbar-icon-ai { background: linear-gradient(145deg, #28a5a6, #17646f); }
+.archive-app-toolbar-icon-ledger { background: linear-gradient(145deg, #c88642, #7a4828); }
+
+.archive-app-empty {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-height: 210px;
+    padding: 32px;
+}
+
+.archive-app-empty-mark {
+    display: grid;
+    width: 72px;
+    height: 72px;
+    flex: 0 0 72px;
+    place-items: center;
+    color: #fff;
+    border-radius: 22px;
+    box-shadow: 0 12px 24px rgba(29, 54, 82, 0.18);
+    font-family: Georgia, serif;
+    font-size: 18px;
+    font-weight: 850;
+}
+
+.archive-app-empty-kicker {
+    margin: 0 0 5px;
+    color: #6d7f94;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.archive-app-empty h2 { margin: 0; color: #182c43; font-family: Georgia, "Noto Serif SC", "Songti SC", serif; }
+.archive-app-empty p:last-child { margin: 9px 0 0; color: #667b90; line-height: 1.7; }
 
 @media (max-width: 680px) {
     .archive-launcher {
-        min-height: 300px;
-        padding: 24px 20px 20px;
+        min-height: 460px;
+        padding: 24px 20px 36px;
     }
+
+    .archive-app-groups { gap: 18px; margin-top: 24px; }
+    .archive-app-group { padding: 16px 12px 12px; }
 
     .archive-app-grid {
         grid-template-columns: repeat(2, minmax(90px, 1fr));
-        gap: 24px 12px;
-        margin-top: 34px;
+        gap: 12px;
+        margin-top: 12px;
     }
 
     .archive-app-icon {
@@ -278,6 +389,7 @@
     }
 
     .archive-app-toolbar { border-radius: 14px; }
+    .archive-app-empty { align-items: flex-start; padding: 24px 20px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

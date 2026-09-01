@@ -939,7 +939,7 @@ async function getEhMedia(request, env) {
 
     const headers = new Headers({
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'private, no-store',
         'X-Content-Type-Options': 'nosniff'
     });
     if (contentLength) headers.set('Content-Length', String(contentLength));
@@ -958,6 +958,11 @@ async function isOwner(request, env) {
 async function authorizeMutation(request, env) {
     if (!isSameOrigin(request)) return json({ message: '请求来源无效' }, 403);
     if (!await isOwner(request, env)) return json({ message: '只有所有者可以修改数据' }, 401);
+    return null;
+}
+
+async function authorizePrivateApp(request, env) {
+    if (!await isOwner(request, env)) return json({ message: '仅所有者可以访问此应用' }, 403);
     return null;
 }
 
@@ -1305,21 +1310,29 @@ export default {
         }
 
         if (/^\/api\/ehviewer\/?$/.test(url.pathname)) {
+            const denied = await authorizePrivateApp(request, env);
+            if (denied) return denied;
             if (request.method === 'GET') return await maybeProxyEhApi(request, env) || listEhGalleries(request, env);
             return methodNotAllowed('GET');
         }
 
         if (/^\/api\/ehviewer\/gallery\/?$/.test(url.pathname)) {
+            const denied = await authorizePrivateApp(request, env);
+            if (denied) return denied;
             if (request.method === 'GET') return await maybeProxyEhApi(request, env) || getEhGallery(request, env);
             return methodNotAllowed('GET');
         }
 
         if (/^\/api\/ehviewer\/image\/?$/.test(url.pathname)) {
+            const denied = await authorizePrivateApp(request, env);
+            if (denied) return denied;
             if (request.method === 'GET') return await maybeProxyEhApi(request, env) || getEhImage(request, env);
             return methodNotAllowed('GET');
         }
 
         if (/^\/api\/ehviewer\/media\/?$/.test(url.pathname)) {
+            const denied = await authorizePrivateApp(request, env);
+            if (denied) return denied;
             if (request.method === 'GET') return await maybeProxyEhApi(request, env) || getEhMedia(request, env);
             return methodNotAllowed('GET');
         }

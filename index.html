@@ -611,29 +611,70 @@
                     </div>
                     <span class="archive-launcher-status" aria-hidden="true"><i></i><i></i><i></i></span>
                 </header>
-                <div class="archive-app-grid" role="group" aria-label="个人应用">
-                    <button class="archive-app-tile" type="button" data-archive-app="steam" aria-controls="archiveSteamPanel">
-                        <span class="archive-app-icon archive-app-icon-steam" aria-hidden="true">
-                            <svg viewBox="0 0 64 64" focusable="false">
-                                <circle cx="32" cy="32" r="30"></circle>
-                                <circle class="archive-app-icon-cutout" cx="44.5" cy="20.5" r="8.5"></circle>
-                                <circle class="archive-app-icon-cutout" cx="20" cy="42" r="7"></circle>
-                                <path class="archive-app-icon-line" d="M25.5 38.5 38 27"></path>
-                                <path class="archive-app-icon-line" d="m13.5 36 7.5 4"></path>
-                            </svg>
-                        </span>
-                        <span class="archive-app-name">Steam</span>
-                    </button>
-                    <button class="archive-app-tile" type="button" data-archive-app="ehviewer" aria-controls="archiveEhviewerPanel">
-                        <span class="archive-app-icon archive-app-icon-ehviewer" aria-hidden="true">
-                            <svg viewBox="0 0 64 64" focusable="false">
-                                <rect x="15" y="12" width="34" height="40" rx="8"></rect>
-                                <path d="M24 12v40M31 24h11M31 32h11M31 40h8"></path>
-                            </svg>
-                            <span>18+</span>
-                        </span>
-                        <span class="archive-app-name">EhViewer</span>
-                    </button>
+                <div class="archive-app-groups">
+                    <section class="archive-app-group" aria-labelledby="publicAppsHeading">
+                        <header class="archive-app-group-head">
+                            <div>
+                                <h3 id="publicAppsHeading">公开应用</h3>
+                                <p>游客与所有者均可访问</p>
+                            </div>
+                            <span class="archive-access-badge archive-access-public">Public</span>
+                        </header>
+                        <div class="archive-app-grid" role="group" aria-label="公开应用">
+                            <button class="archive-app-tile" type="button" data-archive-app="steam" aria-controls="archiveSteamPanel">
+                                <span class="archive-app-icon archive-app-icon-steam" aria-hidden="true">
+                                    <svg viewBox="0 0 64 64" focusable="false">
+                                        <circle cx="32" cy="32" r="30"></circle>
+                                        <circle class="archive-app-icon-cutout" cx="44.5" cy="20.5" r="8.5"></circle>
+                                        <circle class="archive-app-icon-cutout" cx="20" cy="42" r="7"></circle>
+                                        <path class="archive-app-icon-line" d="M25.5 38.5 38 27"></path>
+                                        <path class="archive-app-icon-line" d="m13.5 36 7.5 4"></path>
+                                    </svg>
+                                </span>
+                                <span class="archive-app-name">Steam</span>
+                            </button>
+                            <button class="archive-app-tile" type="button" data-archive-app="ai" aria-controls="archiveAiPanel">
+                                <span class="archive-app-icon archive-app-icon-ai" aria-hidden="true">
+                                    <svg viewBox="0 0 64 64" focusable="false">
+                                        <path d="M20 14h24a8 8 0 0 1 8 8v15a8 8 0 0 1-8 8H31L20 53v-8a8 8 0 0 1-8-8V22a8 8 0 0 1 8-8Z"></path>
+                                        <path d="M23 34 28 24l5 10M25 30h6M40 24v10"></path>
+                                    </svg>
+                                </span>
+                                <span class="archive-app-name">AI</span>
+                            </button>
+                        </div>
+                    </section>
+
+                    <section class="archive-app-group archive-app-group-private" aria-labelledby="privateAppsHeading" data-owner-only hidden>
+                        <header class="archive-app-group-head">
+                            <div>
+                                <h3 id="privateAppsHeading">私有应用</h3>
+                                <p>仅所有者可访问</p>
+                            </div>
+                            <span class="archive-access-badge archive-access-private">Owner</span>
+                        </header>
+                        <div class="archive-app-grid" role="group" aria-label="私有应用">
+                            <button class="archive-app-tile" type="button" data-archive-app="ehviewer" data-archive-private aria-controls="archiveEhviewerPanel">
+                                <span class="archive-app-icon archive-app-icon-ehviewer" aria-hidden="true">
+                                    <svg viewBox="0 0 64 64" focusable="false">
+                                        <rect x="15" y="12" width="34" height="40" rx="8"></rect>
+                                        <path d="M24 12v40M31 24h11M31 32h11M31 40h8"></path>
+                                    </svg>
+                                    <span>18+</span>
+                                </span>
+                                <span class="archive-app-name">E站</span>
+                            </button>
+                            <button class="archive-app-tile" type="button" data-archive-app="ledger" data-archive-private aria-controls="archiveLedgerPanel">
+                                <span class="archive-app-icon archive-app-icon-ledger" aria-hidden="true">
+                                    <svg viewBox="0 0 64 64" focusable="false">
+                                        <rect x="14" y="10" width="36" height="44" rx="7"></rect>
+                                        <path d="M22 21h20M22 30h8M36 30h6M22 39h8M36 39h6M22 47h20"></path>
+                                    </svg>
+                                </span>
+                                <span class="archive-app-name">收支</span>
+                            </button>
+                        </div>
+                    </section>
                 </div>
                 <div class="archive-launcher-dock" aria-hidden="true"><span></span></div>
             </section>
@@ -695,13 +736,32 @@
             </section>
             </div>
 
+            <div class="archive-app-panel" id="archiveAiPanel" data-archive-app-panel="ai" hidden>
+                <header class="archive-app-toolbar card">
+                    <button class="archive-app-back" type="button" data-archive-app-back aria-label="返回个人应用桌面">←</button>
+                    <span class="archive-app-toolbar-icon archive-app-toolbar-icon-ai" aria-hidden="true">AI</span>
+                    <div>
+                        <p>Public App</p>
+                        <h2>AI</h2>
+                    </div>
+                </header>
+                <section class="archive-app-empty card" aria-labelledby="aiAppHeading">
+                    <span class="archive-app-empty-mark archive-app-toolbar-icon-ai" aria-hidden="true">AI</span>
+                    <div>
+                        <p class="archive-app-empty-kicker">AI Workspace</p>
+                        <h2 id="aiAppHeading">AI 应用</h2>
+                        <p>公开应用入口已创建，功能内容正在准备中。</p>
+                    </div>
+                </section>
+            </div>
+
             <div class="archive-app-panel" id="archiveEhviewerPanel" data-archive-app-panel="ehviewer" hidden>
                 <header class="archive-app-toolbar card">
                     <button class="archive-app-back" type="button" data-archive-app-back aria-label="返回个人应用桌面">←</button>
                     <span class="archive-app-toolbar-icon archive-app-toolbar-icon-ehviewer" aria-hidden="true">E</span>
                     <div>
                         <p>My Apps</p>
-                        <h2>EhViewer</h2>
+                        <h2>E站</h2>
                     </div>
                 </header>
             <section class="ehviewer-card card" id="ehviewer" aria-labelledby="ehviewerHeading">
@@ -767,6 +827,25 @@
                     </article>
                 </div>
             </section>
+            </div>
+
+            <div class="archive-app-panel" id="archiveLedgerPanel" data-archive-app-panel="ledger" data-archive-private hidden>
+                <header class="archive-app-toolbar card">
+                    <button class="archive-app-back" type="button" data-archive-app-back aria-label="返回个人应用桌面">←</button>
+                    <span class="archive-app-toolbar-icon archive-app-toolbar-icon-ledger" aria-hidden="true">¥</span>
+                    <div>
+                        <p>Private App</p>
+                        <h2>收支</h2>
+                    </div>
+                </header>
+                <section class="archive-app-empty card" aria-labelledby="ledgerAppHeading">
+                    <span class="archive-app-empty-mark archive-app-toolbar-icon-ledger" aria-hidden="true">¥</span>
+                    <div>
+                        <p class="archive-app-empty-kicker">Private Ledger</p>
+                        <h2 id="ledgerAppHeading">收支应用</h2>
+                        <p>仅所有者可见的收支应用入口已创建，功能内容正在准备中。</p>
+                    </div>
+                </section>
             </div>
 
             </div>

@@ -25,6 +25,12 @@ async function ownerCookie() {
     return response.headers.get('Set-Cookie').split(';', 1)[0];
 }
 
+async function ownerGet(path, targetEnv = env) {
+    return worker.fetch(new Request(`https://example.com${path}`, {
+        headers: { Cookie: await ownerCookie() }
+    }), targetEnv);
+}
+
 test('静态页面请求交给 Assets 服务', async () => {
     const response = await worker.fetch(new Request('https://example.com/index.html'), env);
     assert.equal(await response.text(), 'asset:/index.html');
@@ -40,7 +46,11 @@ test('未知 API 不会退回首页', async () => {
     assert.equal(response.status, 404);
 });
 
-test('EhViewer 无需登录即可读取公开画廊列表', async () => {
+test('EhViewer 仅允许所有者读取画廊列表', async () => {
+    const guestResponse = await worker.fetch(new Request('https://example.com/api/ehviewer'), env);
+    assert.equal(guestResponse.status, 403);
+    assert.equal((await guestResponse.json()).message, '仅所有者可以访问此应用');
+
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async (input, options = {}) => {
         const url = new URL(input);
@@ -55,7 +65,7 @@ test('EhViewer 无需登录即可读取公开画廊列表', async () => {
     };
 
     try {
-        const response = await worker.fetch(new Request('https://example.com/api/ehviewer?search=%E4%B8%AD%E6%96%87'), env);
+        const response = await ownerGet('/api/ehviewer?search=%E4%B8%AD%E6%96%87');
         const data = await response.json();
         assert.equal(response.status, 200);
         assert.equal(data.items.length, 1);
@@ -80,10 +90,7 @@ test('EhViewer 绑定云端浏览器后仍优先使用普通 HTTP', async () => 
     };
 
     try {
-        const response = await worker.fetch(
-            new Request('https://example.com/api/ehviewer'),
-            { ...env, BROWSER: { shouldNotBeUsed: true } }
-        );
+        const response = await ownerGet('/api/ehviewer', { ...env, BROWSER: { shouldNotBeUsed: true } });
         const data = await response.json();
         assert.equal(response.status, 200);
         assert.equal(data.items[0].title, '普通请求成功');
@@ -109,10 +116,7 @@ test('EhViewer 普通出口均被拦截时才启用云端浏览器', async () =>
         }
     };
 
-    const response = await worker.fetch(
-        new Request('https://example.com/api/ehviewer'),
-        { ...env, BROWSER: {}, EH_GATEWAY: gateway }
-    );
+    const response = await ownerGet('/api/ehviewer', { ...env, BROWSER: {}, EH_GATEWAY: gateway });
     const data = await response.json();
     assert.equal(response.status, 200);
     assert.equal(data.items[0].title, '浏览器降级成功');
@@ -153,7 +157,7 @@ test('EhViewer 画廊详情合并官方元数据与公开缩略图', async () =>
     };
 
     try {
-        const response = await worker.fetch(new Request('https://example.com/api/ehviewer/gallery?gid=12345&token=f1e2d3c4b5&batch=0'), env);
+        const response = await ownerGet('/api/ehviewer/gallery?gid=12345&token=f1e2d3c4b5&batch=0');
         const data = await response.json();
         assert.equal(response.status, 200);
         assert.equal(data.gallery.title, '测试画廊');
@@ -175,7 +179,7 @@ test('EhViewer 图片接口只返回受信任图片源与相邻页', async () =>
     };
 
     try {
-        const response = await worker.fetch(new Request('https://example.com/api/ehviewer/image?gid=12345&token=a1b2c3d4e5&page=2'), env);
+        const response = await ownerGet('/api/ehviewer/image?gid=12345&token=a1b2c3d4e5&page=2');
         const data = await response.json();
         assert.equal(response.status, 200);
         assert.equal(new URL(data.imageUrl).pathname, '/api/ehviewer/media');
@@ -201,12 +205,13 @@ test('EhViewer 图片代理只读取受信任图片域名', async () => {
 
     try {
         const safeUrl = encodeURIComponent('https://ehgt.org/aa/test.webp');
-        const response = await worker.fetch(new Request(`https://example.com/api/ehviewer/media?url=${safeUrl}`), env);
+        const response = await ownerGet(`/api/ehviewer/media?url=${safeUrl}`);
         assert.equal(response.status, 200);
         assert.equal(response.headers.get('Content-Type'), 'image/webp');
+        assert.equal(response.headers.get('Cache-Control'), 'private, no-store');
         assert.equal((await response.arrayBuffer()).byteLength, 4);
 
-        const rejected = await worker.fetch(new Request('https://example.com/api/ehviewer/media?url=https%3A%2F%2Fevil.example%2Fimage.webp'), env);
+        const rejected = await ownerGet('/api/ehviewer/media?url=https%3A%2F%2Fevil.example%2Fimage.webp');
         assert.equal(rejected.status, 400);
     } finally {
         globalThis.fetch = originalFetch;
@@ -223,7 +228,7 @@ test('EhViewer 后续缩略图分组不会重复消耗元数据 API 配额', asy
     };
 
     try {
-        const response = await worker.fetch(new Request('https://example.com/api/ehviewer/gallery?gid=12345&token=f1e2d3c4b5&batch=1&count=21'), env);
+        const response = await ownerGet('/api/ehviewer/gallery?gid=12345&token=f1e2d3c4b5&batch=1&count=21');
         const data = await response.json();
         assert.equal(response.status, 200);
         assert.equal(data.previews[0].pageNumber, 21);
@@ -240,7 +245,7 @@ test('EhViewer 拒绝伪造的画廊与图片页参数', async () => {
         '/api/ehviewer/gallery?gid=1&token=not-a-token&batch=0',
         '/api/ehviewer/image?gid=1&token=../../secret&page=1'
     ]) {
-        const response = await worker.fetch(new Request(`https://example.com${path}`), env);
+        const response = await ownerGet(path);
         assert.equal(response.status, 400, path);
     }
 });

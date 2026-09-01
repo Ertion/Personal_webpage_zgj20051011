@@ -11,6 +11,7 @@
     function openApp(name, trigger) {
         const panel = panels.find((item) => item.dataset.archiveAppPanel === name);
         if (!panel) return;
+        if (panel.hasAttribute('data-archive-private') && document.body.dataset.authMode !== 'owner') return;
 
         returnFocus = trigger || appButtons.find((button) => button.dataset.archiveApp === name) || null;
         activeApp = name;
@@ -32,6 +33,10 @@
         button.addEventListener('click', () => openApp(button.dataset.archiveApp, button));
     });
     backButtons.forEach((button) => button.addEventListener('click', showLauncher));
+    document.addEventListener('auth-mode-changed', (event) => {
+        const activePanel = panels.find((panel) => panel.dataset.archiveAppPanel === activeApp);
+        if (event.detail?.mode !== 'owner' && activePanel?.hasAttribute('data-archive-private')) showLauncher();
+    });
     document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape' || !activeApp) return;
         const openDialog = document.querySelector('dialog[open]');
