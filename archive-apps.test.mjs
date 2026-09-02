@@ -44,6 +44,16 @@ test('GPS public app samples device location once per second and caps history at
     assert.match(script, /event\.detail\?\.app !== 'gps'/);
 });
 
+test('desktop app launcher uses four columns while the mobile override stays responsive', async () => {
+    const [desktopCss, mobileCss] = await Promise.all([
+        readFile(join(projectRoot, 'archive-apps.css'), 'utf8'),
+        readFile(join(projectRoot, 'mobile-ui.css'), 'utf8')
+    ]);
+
+    assert.match(desktopCss, /\.archive-app-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4, minmax\(96px, 128px\)\)/s);
+    assert.match(mobileCss, /\.archive-app-grid\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit, minmax\(76px, 1fr\)\)/s);
+});
+
 test('archive apps load their remote data only after the matching app opens', async () => {
     const [steam, ehviewer, ledger, launcher] = await Promise.all([
         readFile(join(projectRoot, 'steam-ui.js'), 'utf8'),

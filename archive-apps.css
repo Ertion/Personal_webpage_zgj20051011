@@ -121,7 +121,7 @@
 
 .archive-app-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(96px, 128px));
+    grid-template-columns: repeat(4, minmax(96px, 128px));
     justify-content: start;
     gap: 16px 24px;
     margin-top: 14px;
