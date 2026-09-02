@@ -23,10 +23,12 @@
 
     function showLauncher() {
         if (!activeApp) return;
+        const closedApp = activeApp;
         panels.forEach((panel) => { panel.hidden = true; });
         launcher.hidden = false;
         activeApp = null;
         returnFocus?.focus({ preventScroll: true });
+        document.dispatchEvent(new CustomEvent('archiveappclose', { detail: { app: closedApp } }));
     }
 
     appButtons.forEach((button) => {

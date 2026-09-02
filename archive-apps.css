@@ -212,6 +212,21 @@
     background: linear-gradient(145deg, #28a5a6, #17646f);
 }
 
+.archive-app-icon-gps {
+    color: #fff;
+    background: linear-gradient(145deg, #2d9a73, #126053);
+}
+
+.archive-app-icon-gps svg {
+    width: 58px;
+    height: 58px;
+    fill: rgba(255, 255, 255, 0.08);
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 .archive-app-icon-ai svg,
 .archive-app-icon-ledger svg {
     width: 58px;
@@ -326,6 +341,7 @@
 .archive-app-toolbar-icon-ehviewer { background: linear-gradient(145deg, #9468bd, #4c2e69); }
 .archive-app-toolbar-icon-ai { background: linear-gradient(145deg, #28a5a6, #17646f); }
 .archive-app-toolbar-icon-ledger { background: linear-gradient(145deg, #c88642, #7a4828); }
+.archive-app-toolbar-icon-gps { background: linear-gradient(145deg, #2d9a73, #126053); }
 
 .archive-app-empty {
     display: flex;

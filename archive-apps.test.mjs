@@ -13,6 +13,7 @@ test('home archive area separates public and owner-only apps with accessible pan
     assert.match(html, /data-archive-app="steam"[^>]+aria-controls="archiveSteamPanel"/);
     assert.match(html, /data-archive-app="ai"[^>]+aria-controls="archiveAiPanel"/);
     assert.match(html, /data-archive-app="guestbook"[^>]+aria-controls="archiveGuestbookPanel"/);
+    assert.match(html, /data-archive-app="gps"[^>]+aria-controls="archiveGpsPanel"/);
     assert.match(html, /data-archive-app="ehviewer"[^>]+data-archive-private[^>]+aria-controls="archiveEhviewerPanel"/);
     assert.match(html, /data-archive-app="ledger"[^>]+data-archive-private[^>]+aria-controls="archiveLedgerPanel"/);
     assert.match(html, /id="publicAppsHeading">公开应用</);
@@ -21,9 +22,26 @@ test('home archive area separates public and owner-only apps with accessible pan
     assert.match(html, /id="archiveSteamPanel"[^>]+data-archive-app-panel="steam" hidden/);
     assert.match(html, /id="archiveAiPanel"[^>]+data-archive-app-panel="ai" hidden/);
     assert.match(html, /id="archiveGuestbookPanel"[^>]+data-archive-app-panel="guestbook" hidden/);
+    assert.match(html, /id="archiveGpsPanel"[^>]+data-archive-app-panel="gps" hidden/);
     assert.match(html, /id="archiveEhviewerPanel"[^>]+data-archive-app-panel="ehviewer" hidden/);
     assert.match(html, /id="archiveLedgerPanel"[^>]+data-archive-app-panel="ledger"[^>]+data-archive-private hidden/);
-    assert.equal((html.match(/data-archive-app-back/g) || []).length, 5);
+    assert.equal((html.match(/data-archive-app-back/g) || []).length, 6);
+});
+
+test('GPS public app samples device location once per second and caps history at ten records', async () => {
+    const [html, script] = await Promise.all([
+        readFile(join(projectRoot, 'index.html'), 'utf8'),
+        readFile(join(projectRoot, 'gps-ui.js'), 'utf8')
+    ]);
+
+    for (const id of ['gpsLatitude', 'gpsLongitude', 'gpsSpeed', 'gpsAccuracy', 'gpsAltitude', 'gpsHeading', 'gpsHistoryBody']) {
+        assert.match(html, new RegExp(`id="${id}"`));
+    }
+    assert.match(script, /navigator\.geolocation\.watchPosition/);
+    assert.match(script, /setInterval\(captureRecord, 1000\)/);
+    assert.match(script, /records\.slice\(0, 10\)/);
+    assert.match(script, /event\.detail\?\.app === 'gps'/);
+    assert.match(script, /event\.detail\?\.app !== 'gps'/);
 });
 
 test('archive apps load their remote data only after the matching app opens', async () => {

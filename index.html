@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="ai-activity-ui.css">
     <link rel="stylesheet" href="guestbook-ui.css">
     <link rel="stylesheet" href="ledger-ui.css">
+    <link rel="stylesheet" href="gps-ui.css">
     <style>
         :root {
             --navy: #0c2033;
@@ -663,6 +664,15 @@
                                 </span>
                                 <span class="archive-app-name">留言板</span>
                             </button>
+                            <button class="archive-app-tile" type="button" data-archive-app="gps" aria-controls="archiveGpsPanel">
+                                <span class="archive-app-icon archive-app-icon-gps" aria-hidden="true">
+                                    <svg viewBox="0 0 64 64" focusable="false">
+                                        <path d="M32 55s17-15.6 17-30a17 17 0 1 0-34 0c0 14.4 17 30 17 30Z"></path>
+                                        <circle cx="32" cy="25" r="6"></circle>
+                                    </svg>
+                                </span>
+                                <span class="archive-app-name">GPS</span>
+                            </button>
                         </div>
                     </section>
 
@@ -878,6 +888,89 @@
                     <div class="guestbook-list" id="guestbookList" aria-live="polite">
                         <p class="guestbook-empty">打开留言板后，将加载大家的留言。</p>
                     </div>
+                </section>
+            </div>
+
+            <div class="archive-app-panel" id="archiveGpsPanel" data-archive-app-panel="gps" hidden>
+                <header class="archive-app-toolbar card">
+                    <button class="archive-app-back" type="button" data-archive-app-back aria-label="返回个人应用桌面">←</button>
+                    <span class="archive-app-toolbar-icon archive-app-toolbar-icon-gps" aria-hidden="true">⌖</span>
+                    <div>
+                        <p>Public App</p>
+                        <h2>GPS</h2>
+                    </div>
+                </header>
+
+                <section class="gps-card card" aria-labelledby="gpsHeading">
+                    <header class="gps-head">
+                        <div>
+                            <p class="gps-kicker">Live Device Location</p>
+                            <h2 id="gpsHeading">设备实时位置</h2>
+                            <p>每秒记录一次当前位置，列表仅保留最近 10 条。</p>
+                        </div>
+                        <div class="gps-live-badge" id="gpsLiveBadge" data-state="idle">
+                            <i aria-hidden="true"></i><span>等待授权</span>
+                        </div>
+                    </header>
+
+                    <div class="gps-current" aria-label="当前定位信息">
+                        <div class="gps-coordinate gps-coordinate-primary">
+                            <span>纬度</span>
+                            <strong id="gpsLatitude">—</strong>
+                        </div>
+                        <div class="gps-coordinate gps-coordinate-primary">
+                            <span>经度</span>
+                            <strong id="gpsLongitude">—</strong>
+                        </div>
+                        <div class="gps-coordinate">
+                            <span>速度</span>
+                            <strong id="gpsSpeed">—</strong>
+                            <small id="gpsSpeedSource">km/h</small>
+                        </div>
+                        <div class="gps-coordinate">
+                            <span>定位精度</span>
+                            <strong id="gpsAccuracy">—</strong>
+                            <small>米</small>
+                        </div>
+                        <div class="gps-coordinate">
+                            <span>海拔</span>
+                            <strong id="gpsAltitude">—</strong>
+                            <small>米</small>
+                        </div>
+                        <div class="gps-coordinate">
+                            <span>方向</span>
+                            <strong id="gpsHeading">—</strong>
+                            <small>°</small>
+                        </div>
+                    </div>
+
+                    <div class="gps-controls">
+                        <button class="gps-primary-button" id="gpsStartButton" type="button">开始定位</button>
+                        <button class="gps-secondary-button" id="gpsStopButton" type="button" disabled>停止</button>
+                        <p id="gpsStatus" role="status" aria-live="polite">打开应用后将请求定位权限。</p>
+                    </div>
+
+                    <section class="gps-history" aria-labelledby="gpsHistoryHeading">
+                        <header>
+                            <div>
+                                <h3 id="gpsHistoryHeading">最近记录</h3>
+                                <p>新记录显示在最上方</p>
+                            </div>
+                            <span id="gpsRecordCount">0 / 10</span>
+                        </header>
+                        <div class="gps-table-wrap">
+                            <table>
+                                <thead>
+                                    <tr><th scope="col">时间</th><th scope="col">纬度</th><th scope="col">经度</th><th scope="col">速度</th><th scope="col">精度</th></tr>
+                                </thead>
+                                <tbody id="gpsHistoryBody">
+                                    <tr class="gps-empty-row"><td colspan="5">授权定位后，记录将在这里出现。</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <p class="gps-privacy-note"><span aria-hidden="true">▣</span> 坐标和历史记录只保存在当前页面内，不会上传到服务器；返回应用桌面时定位会自动停止。</p>
                 </section>
             </div>
 
@@ -1467,5 +1560,6 @@
     <script src="archive-apps.js"></script>
     <script src="ai-activity-ui.js"></script>
     <script src="ledger-ui.js"></script>
+    <script src="gps-ui.js"></script>
 </body>
 </html>
