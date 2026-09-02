@@ -5,11 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="description" content="赵冠杰的个人档案馆，记录嵌入式、无人机与工程实践。">
     <meta name="theme-color" content="#0d2236">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="ZGJ Archive｜个人档案馆">
+    <meta property="og:description" content="记录嵌入式、无人机、工程实践与 AI 使用活跃度。">
+    <meta property="og:image" content="https://zgj20051011.top/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ZGJ Archive｜个人档案馆">
+    <meta name="twitter:description" content="记录嵌入式、无人机、工程实践与 AI 使用活跃度。">
+    <meta name="twitter:image" content="https://zgj20051011.top/og.png">
     <title>ZGJ Archive｜个人档案馆</title>
     <link rel="stylesheet" href="database-ui.css">
     <link rel="stylesheet" href="steam-ui.css">
     <link rel="stylesheet" href="ehviewer-ui.css">
     <link rel="stylesheet" href="archive-apps.css">
+    <link rel="stylesheet" href="ai-activity-ui.css">
     <link rel="stylesheet" href="guestbook-ui.css">
     <link rel="stylesheet" href="ledger-ui.css">
     <style>
@@ -757,13 +766,59 @@
                         <h2>AI</h2>
                     </div>
                 </header>
-                <section class="archive-app-empty card" aria-labelledby="aiAppHeading">
-                    <span class="archive-app-empty-mark archive-app-toolbar-icon-ai" aria-hidden="true">AI</span>
-                    <div>
-                        <p class="archive-app-empty-kicker">AI Workspace</p>
-                        <h2 id="aiAppHeading">AI 应用</h2>
-                        <p>公开应用入口已创建，功能内容正在准备中。</p>
+                <section class="ai-activity-card card" aria-labelledby="aiAppHeading">
+                    <header class="ai-activity-head">
+                        <div>
+                            <p class="ai-activity-kicker">GPT Activity</p>
+                            <h2 id="aiAppHeading">每日使用活跃度</h2>
+                            <p id="aiActivitySummary" class="ai-activity-summary">打开应用后读取年度记录</p>
+                        </div>
+                        <span class="ai-activity-range">Asia / Shanghai</span>
+                    </header>
+
+                    <div class="ai-activity-stats" aria-label="年度统计">
+                        <div><span>活跃天数</span><strong id="aiActiveDays">—</strong></div>
+                        <div><span>用户消息</span><strong id="aiUserMessages">—</strong></div>
+                        <div><span>助手回复</span><strong id="aiAssistantReplies">—</strong></div>
                     </div>
+
+                    <div class="ai-activity-layout">
+                        <div class="ai-calendar-panel">
+                            <div class="ai-calendar-title-row">
+                                <div>
+                                    <h3 id="aiCalendarTitle">2026 年贡献度</h3>
+                                    <p id="aiActivityStatus" role="status" aria-live="polite">正在等待打开应用…</p>
+                                </div>
+                                <span class="ai-calendar-metric">绿色深浅 = 当天用户消息数</span>
+                            </div>
+
+                            <div class="ai-heatmap-scroll" aria-label="可横向滚动查看全年活跃度">
+                                <div class="ai-heatmap-content">
+                                    <div class="ai-months" id="aiActivityMonths" aria-hidden="true"></div>
+                                    <div class="ai-heatmap-body">
+                                        <div class="ai-weekdays" aria-hidden="true">
+                                            <span></span><span>一</span><span></span><span>三</span><span></span><span>五</span><span></span>
+                                        </div>
+                                        <div class="ai-contribution-grid" id="aiActivityGrid" role="grid" aria-labelledby="aiCalendarTitle"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="ai-calendar-footer">
+                                <p id="aiActivityDetail">选择方格可查看当天记录</p>
+                                <div class="ai-legend" aria-label="活跃度图例">
+                                    <span>少</span><i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i><span>多</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <nav class="ai-year-picker" aria-label="选择年份">
+                            <button type="button" data-ai-year="2026" aria-pressed="true">2026</button>
+                            <button type="button" data-ai-year="2025" aria-pressed="false">2025</button>
+                        </nav>
+                    </div>
+
+                    <p class="ai-activity-note">数据覆盖 2025-10-04 至 2026-09-01；浅灰方格表示导出范围外。</p>
                 </section>
             </div>
 
@@ -1410,6 +1465,7 @@
     <script src="ehviewer-ui.js"></script>
     <script src="guestbook-ui.js?v=20260901-2"></script>
     <script src="archive-apps.js"></script>
+    <script src="ai-activity-ui.js"></script>
     <script src="ledger-ui.js"></script>
 </body>
 </html>
